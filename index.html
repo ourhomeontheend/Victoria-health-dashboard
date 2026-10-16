@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Victoria — Health Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  :root {
+    --bg: #F7F6F3;
+    --bg2: #EFEFEB;
+    --bg3: #FFFFFF;
+    --text: #1A1A1A;
+    --text2: #5A5A5A;
+    --text3: #9A9A9A;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.06);
+    --green: #2D6A4F;
+    --green-bg: #D8F3DC;
+    --amber: #92400E;
+    --amber-bg: #FEF3C7;
+    --red: #991B1B;
+    --red-bg: #FEE2E2;
+    --blue: #1E40AF;
+    --blue-bg: #DBEAFE;
+    --pink: #9D174D;
+    --pink-bg: #FCE7F3;
+    --accent: #2D6A4F;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .header {
+    padding: 24px 20px 0;
+    margin-bottom: 0;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  nav {
+    display: flex;
+    gap: 4px;
+    padding: 16px 20px 0;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border2);
+    padding-bottom: 0;
+  }
+
+  .nav-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 8px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-weight: 500;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .page { display: none; padding: 20px; max-width: 720px; }
+  .page.active { display: block; }
+
+  .card {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .metric {
+    background: var(--bg2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+
+  .metric-val { font-size: 20px; font-weight: 600; color: var(--text); }
+  .metric-lbl { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+  .habit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border2);
+  }
+  .habit-row:last-child { border-bottom: none; }
+  .habit-name { font-size: 13px; color: var(--text); }
+  .habit-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+  .check {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .check.done { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+  input[type=text], input[type=number], select, textarea {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+
+  input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+  }
+
+  .btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--bg2); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { opacity: .88; }
+  .btn-sm { font-size: 11px; padding: 5px 10px; }
+  .btn-danger { color: var(--red); }
+  .btn-info { color: var(--blue); border-color: var(--blue-bg); background: var(--blue-bg); }
+  .btn-info:hover { opacity: .85; }
+
+  .flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .row-input {
+    display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .row-input input[type=text] { flex: 1; min-width: 0; }
+
+  .log-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; border-bottom: 1px solid var(--border2);
+    font-size: 13px;
+  }
+  .log-item:last-child { border-bottom: none; }
+  .log-name { flex: 1; color: var(--text); }
+  .log-meta { font-size: 11px; color: var(--text3); margin-right: 6px; }
+
+  .progress-wrap {
+    background: var(--bg2); border-radius: 4px; height: 6px;
+    width: 100%; overflow: hidden; margin-top: 5px;
+  }
+  .progress-bar {
+    height: 6px; border-radius: 4px; background: var(--green);
+    transition: width .3s;
+  }
+
+  .badge {
+    display: inline-block; font-size: 11px; padding: 3px 9px;
+    border-radius: 20px; font-weight: 500;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-blue { background: var(--blue-bg); color: var(--blue); }
+  .badge-pink { background: var(--pink-bg); color: var(--pink); }
+  .badge-gray { background: var(--bg2); color: var(--text2); border: 1px solid var(--border); }
+
+  .meal-card {
+    background: var(--bg2); border-radius: var(--radius-sm);
+    padding: 12px; margin-bottom: 8px;
+  }
+  .meal-type { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 3px; }
+  .meal-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .meal-steps { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .meal-tip { font-size: 11px; color: var(--text3); margin-top: 4px; font-style: italic; }
+  .macros { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+  .macro { font-size: 10px; padding: 2px 7px; border-radius: 20px; background: var(--bg3); border: 1px solid var(--border2); color: var(--text3); }
+
+  .exercise-card {
+    background: var(--bg2); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-bottom: 7px;
+  }
+  .ex-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .ex-name { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+  .ex-sets { font-size: 12px; color: var(--text3); white-space: nowrap; margin-left: 8px; }
+  .ex-note { font-size: 11px; color: var(--text2); line-height: 1.5; }
+  .ex-tip-btn { font-size: 10px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--blue-bg); background: var(--blue-bg); color: var(--blue); cursor: pointer; margin-top: 5px; font-family: 'DM Sans', sans-serif; }
+  .ex-tip-btn:hover { opacity: .8; }
+
+  .warmup-box {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    margin-bottom: 9px; font-size: 12px; color: var(--text2);
+  }
+  .warmup-box strong { color: var(--text); }
+
+  .info-box {
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    padding: 10px 12px; font-size: 12px; color: var(--text2);
+    line-height: 1.6; margin-top: 8px;
+  }
+  .info-box strong { color: var(--text); }
+
+  .day-nav { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
+  .day-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text2); cursor: pointer; font-weight: 500;
+  }
+  .day-btn:hover { background: var(--bg2); }
+  .day-btn.active { background: var(--text); color: white; border-color: var(--text); }
+  .day-btn.gym { border-color: #93C5FD; }
+  .day-btn.gym.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+  .day-screen { display: none; }
+  .day-screen.active { display: block; }
+
+  .day-header { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+  .day-title { font-family: 'DM Serif Display', serif; font-size: 22px; font-weight: 400; }
+
+  .sess-tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
+  .sess-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text2); cursor: pointer; font-weight: 500;
+  }
+  .sess-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+  .lift-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; padding: 7px 10px; background: var(--bg2); border-radius: var(--radius-sm); }
+  .lift-name { font-size: 12px; color: var(--text); flex: 1; font-weight: 500; }
+  .lift-target { font-size: 10px; color: var(--text3); display: block; font-weight: 400; margin-top: 1px; }
+  .lift-sets-label { font-size: 10px; color: var(--text3); }
+  .lift-input { width: 48px; text-align: center; }
+  .lift-input-sm { width: 38px; text-align: center; }
+  .lift-col-label { font-size: 10px; color: var(--text3); text-align: center; width: 48px; }
+  .lift-col-label-sm { font-size: 10px; color: var(--text3); text-align: center; width: 38px; }
+  .lift-pb { font-size: 10px; color: var(--text3); min-width: 90px; text-align: right; }
+  .lift-newpb { font-size: 10px; color: var(--green); font-weight: 600; min-width: 90px; text-align: right; }
+  .lift-header-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; padding: 0 10px; }
+  .hint-ready { font-size: 10px; padding: 1px 6px; border-radius: 20px; background: var(--green-bg); color: var(--green); white-space: nowrap; }
+  .hint-close { font-size: 10px; padding: 1px 6px; border-radius: 20px; background: var(--amber-bg); color: var(--amber); white-space: nowrap; }
+  .sets-done { font-size: 11px; color: var(--text3); }
+  .sets-done.complete { color: var(--green); font-weight: 600; }
+  .sets-done.partial { color: var(--amber); font-weight: 600; }
+
+  .streak-grid { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 6px; }
+  .streak-dot {
+    width: 12px; height: 12px; border-radius: 2px;
+    background: var(--bg2); border: 1px solid var(--border2);
+  }
+  .streak-dot.hit { background: var(--green); border-color: var(--green); }
+  .streak-dot.miss { background: var(--red-bg); border-color: #FCA5A5; }
+  .streak-dot.amber { background: #FDE68A; border-color: #F59E0B; }
+
+  .groc-section { margin-bottom: 12px; }
+  .groc-cat { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); margin-bottom: 6px; }
+  .groc-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border2); font-size: 13px; }
+  .groc-item:last-child { border-bottom: none; }
+  .groc-item.ticked { text-decoration: line-through; color: var(--text3); }
+  .groc-check { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .groc-check.done { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+  .coach-q { background: var(--blue-bg); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; font-size: 13px; color: var(--blue); line-height: 1.5; }
+
+  .chart-wrap { height: 100px; margin: 8px 0 4px; }
+
+  textarea { width: 100%; min-height: 80px; resize: vertical; }
+
+  .slider-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .slider-row label { font-size: 12px; color: var(--text2); min-width: 90px; }
+  .slider-val { font-size: 13px; font-weight: 600; color: var(--text); min-width: 32px; text-align: right; }
+
+  .supp-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border2); }
+  .supp-row:last-child { border-bottom: none; }
+  .supp-name { font-size: 13px; color: var(--text); }
+  .supp-note { font-size: 11px; color: var(--text3); }
+
+  footer {
+    padding: 20px;
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+    border-top: 1px solid var(--border2);
+    margin-top: 8px;
+  }
+
+  @media (max-width: 480px) {
+    .header { padding: 16px 14px 0; }
+    nav { padding: 12px 14px 0; }
+    .page { padding: 14px; }
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>Health Dashboard</h1>
+    <span class="header-sub" id="hdr-date"></span>
+  </div>
+</div>
+
+<nav>
+  <button class="nav-btn active" onclick="nav('today')">Today</button>
+  <button class="nav-btn" onclick="nav('plan')">Daily plan</button>
+  <button class="nav-btn" onclick="nav('food')">Food log</button>
+  <button class="nav-btn" onclick="nav('gym')">Gym log</button>
+  <button class="nav-btn" onclick="nav('supps')">Supplements</button>
+  <button class="nav-btn" onclick="nav('grocery')">Grocery list</button>
+  <button class="nav-btn" onclick="nav('progress')">Progress</button>
+  <button class="nav-btn" onclick="nav('coach')">AI coach</button>
+</nav>
+
+<!-- TODAY -->
+<div class="page active" id="pg-today">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:15px;font-weight:600" id="td-title"></div>
+    <div style="font-size:12px;color:var(--text3)" id="td-score"></div>
+  </div>
+  <div class="metric-grid" id="td-metrics"></div>
+  <div class="card">
+    <div class="card-title">Habits</div>
+    <div id="habits-list"></div>
+    <div class="flex" style="margin-top:12px">
+      <button class="btn btn-primary" onclick="saveToday()">Save today</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Quick food log</div>
+    <div class="row-input">
+      <input type="text" id="qf" placeholder="What did you eat?" />
+      <select id="qm"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select>
+      <button class="btn btn-primary" onclick="addQF()">Add</button>
+    </div>
+    <div id="qf-list"></div>
+    <div id="cal-today" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Steps today</div>
+    <div class="slider-row">
+      <label>Steps</label>
+      <input type="range" min="0" max="15000" step="500" id="steps-sl" oninput="updSteps(this.value)" value="0"/>
+      <span class="slider-val" id="steps-val">0</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="steps-bar" style="width:0%"></div></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px" id="steps-msg">Target: 6,000–7,000 steps</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Energy and clarity</div>
+    <div class="slider-row"><label>Energy</label><input type="range" min="1" max="10" step="1" id="en-sl" oninput="sv('en-v',this.value)" value="5"/><span class="slider-val" id="en-v">5</span></div>
+    <div class="slider-row"><label>Brain clarity</label><input type="range" min="1" max="10" step="1" id="cl-sl" oninput="sv('cl-v',this.value)" value="5"/><span class="slider-val" id="cl-v">5</span></div>
+  </div>
+</div>
+
+<!-- DAILY PLAN -->
+<div class="page" id="pg-plan">
+  <div class="day-nav">
+    <button class="day-btn active" onclick="showDay('mon')">Mon</button>
+    <button class="day-btn gym" onclick="showDay('tue')">Tue</button>
+    <button class="day-btn" onclick="showDay('wed')">Wed</button>
+    <button class="day-btn gym" onclick="showDay('thu')">Thu</button>
+    <button class="day-btn" onclick="showDay('fri')">Fri</button>
+    <button class="day-btn gym" onclick="showDay('sat')">Sat</button>
+    <button class="day-btn gym" onclick="showDay('sun')">Sun</button>
+  </div>
+
+  <div class="day-screen active" id="ds-mon">
+    <div class="day-header"><div class="day-title">Monday</div><span class="badge badge-gray">Rest day</span></div>
+    <div class="info-box" style="margin-bottom:12px">🎯 <strong>Today's principle:</strong> Fat first, protein follows. Every meal needs a proper fat source — butter, cream cheese, double cream. Carbs come only from vegetables and the odd sweet fix. Keep it simple and grab-and-go where possible.</div>
+    <div class="section-label">Food</div>
+    <div class="meal-card"><div class="meal-type">Breakfast · 2 options — pick one</div><div class="meal-name">Option A: Scrambled eggs + leftover mince</div><div class="meal-steps">3 eggs in butter. Reheat Sunday's mince alongside. Done in 5 min. Add cream cheese stirred through at the end if you want it creamier.</div><div class="macros"><span class="macro">~42g protein</span><span class="macro">~32g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Breakfast · Option B — even easier</div><div class="meal-name">Surreal cereal (cinnamon or chocolate) + full fat milk</div><div class="meal-steps">Pour. Done. Add double cream instead of milk for more fat. Eat with a boiled egg on the side if you want more protein.</div><div class="meal-tip">12–13g protein, 6–7g net carbs, 0g sugar. Completely on plan — this is a legitimate breakfast not a cheat.</div><div class="macros"><span class="macro">~13g protein</span><span class="macro">~8g fat</span><span class="macro">~7g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Lunch · Grab and go — no cooking</div><div class="meal-name">Pork shoulder slices + cream cheese + olives + cold boiled egg</div><div class="meal-steps">Everything cold from the fridge. Pork shoulder slices, a big spoonful of cream cheese, olives, one or two cold boiled eggs. Eat in 2 minutes. No preparation needed.</div><div class="macros"><span class="macro">~38g protein</span><span class="macro">~32g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Dinner · One pan, 10 min</div><div class="meal-name">Steak + butter + optional broccoli or cauliflower</div><div class="meal-steps">Hot pan, steak 2–3 min each side, rest with a knob of butter melting on top. If doing veg: steam broccoli or roast cauliflower florets in butter and salt while the steak rests. One pan, done.</div><div class="meal-tip">Fish option: wild cod or haddock in butter — identical effort, different protein.</div><div class="macros"><span class="macro">~50g protein</span><span class="macro">~34g fat</span><span class="macro">~3g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Sweet fix · optional</div><div class="meal-name">Chocolate cheesecake pot or Surreal as a snack</div><div class="meal-steps">Either: blitz cottage cheese smooth, stir in cocoa, honey, salt — refrigerate 20 min. Or: small bowl of Surreal dry or with a splash of double cream. Both completely on plan.</div><div class="macros"><span class="macro">~18g protein</span><span class="macro">~8g fat</span><span class="macro">~6g carbs</span></div></div>
+  </div>
+
+  <div class="day-screen" id="ds-tue">
+    <div class="day-header"><div class="day-title">Tuesday</div><span class="badge badge-blue">Upper body</span></div>
+    <div class="section-label">Food</div>
+    <div class="meal-card"><div class="meal-type">Breakfast · 2 options — pick one</div><div class="meal-name">Option A: Scrambled eggs + pepperoni + mozzarella</div><div class="meal-steps">3 eggs in butter. Stir through pepperoni and torn mozzarella. Basil, garlic, salt. 5 minutes.</div><div class="macros"><span class="macro">~38g protein</span><span class="macro">~30g fat</span><span class="macro">~2g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Breakfast · Option B</div><div class="meal-name">Surreal cereal + double cream + boiled egg alongside</div><div class="meal-steps">Pour Surreal. Add double cream for fat. Eat a cold boiled egg alongside for extra protein. Done in 90 seconds.</div><div class="meal-tip">Pre-gym breakfast — light enough to train on, enough protein and fat to fuel the session.</div><div class="macros"><span class="macro">~20g protein</span><span class="macro">~16g fat</span><span class="macro">~7g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Lunch · Grab and go</div><div class="meal-name">Cold pork shoulder + cream cheese + olives + boiled egg</div><div class="meal-steps">Everything cold from the fridge. No cooking. Done in 2 minutes. Add wilted spinach if you want veg — 60 seconds in a pan with butter and salt.</div><div class="macros"><span class="macro">~40g protein</span><span class="macro">~32g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Dinner · Post training · one pan</div><div class="meal-name">Ribeye steak + butter + optional cauliflower</div><div class="meal-steps">Hot pan, ribeye 2–3 min each side, butter melting on top while it rests. Optional: roast cauliflower florets in butter and salt at 200°C for 20 min while you're at the gym — it's ready when you get back.</div><div class="macros"><span class="macro">~52g protein</span><span class="macro">~38g fat</span><span class="macro">~3g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Sweet fix</div><div class="meal-name">Chocolate cheesecake pot or Surreal dry as a snack</div><div class="meal-steps">Cottage cheese blitzed smooth + cocoa + honey + salt. Or a small bowl of Surreal eaten dry like crisps. Both completely on plan.</div><div class="macros"><span class="macro">~18g protein</span><span class="macro">~8g fat</span><span class="macro">~6g carbs</span></div></div>
+    <div class="section-label" style="margin-top:14px">Gym — upper body, efficient (45–55 min)</div>
+    <div class="warmup-box"><strong>Warm-up:</strong> Band external rotations or serratus wall slides — 2 min. Compounds only today — no isolation fluff.</div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Bench press <span class="badge badge-blue" style="font-size:9px">compound</span></span><span class="ex-sets">3×6–8</span></div><div class="ex-note">Lead lift when fresh. Try 40kg — you hit 11 reps at 37.5kg last session.</div><button class="ex-tip-btn" onclick="tip('bench press')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Assisted pull-ups <span class="badge badge-blue" style="font-size:9px">compound</span></span><span class="ex-sets">3×6–8</span></div><div class="ex-note">Try +10kg or reduce assistance — you hit 8 clean reps all 3 sets at +9kg.</div><button class="ex-tip-btn" onclick="tip('assisted pull-ups')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Assisted dips <span class="badge badge-blue" style="font-size:9px">compound · Tue only</span></span><span class="ex-sets">2×8–10</span></div><div class="ex-note">Try +11kg — hit 10 reps both sets at +9kg. Compound movement hitting triceps, chest and front delts. Slight forward lean for more chest, upright for more triceps.</div><button class="ex-tip-btn" onclick="tip('assisted dips')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Low row — wide grip <span class="badge badge-blue" style="font-size:9px">compound</span></span><span class="ex-sets">3×8–10</span></div><div class="ex-note">Jump to 27.5–30kg. You were doing 13–14 reps at 20kg — massively underloaded. Wide grip, elbows flare out, different upper back stimulus to Saturday's seated row.</div><button class="ex-tip-btn" onclick="tip('low row wide grip')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">DB shoulder press <span class="badge badge-amber" style="font-size:9px">shoulder</span></span><span class="ex-sets">3×8–10</span></div><div class="ex-note">Stay at 23kg but do it here — earlier in the session means better reps. You were dropping to 5 reps when it came too late.</div><button class="ex-tip-btn" onclick="tip('dumbbell shoulder press')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Face pulls — face height <span class="badge badge-amber" style="font-size:9px">shoulder health</span></span><span class="ex-sets">3×15</span></div><div class="ex-note">Rope to nose level. Pull apart at end. Non-negotiable even on tight days.</div><button class="ex-tip-btn" onclick="tip('face pulls')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Rear delt flyes <span class="badge badge-amber" style="font-size:9px">shoulder health · 2 sets</span></span><span class="ex-sets">2×12–15</span></div><div class="ex-note">Counterbalances all the pressing you've done. Lead with elbows, slight bend in arms, traps relaxed — not a shrug. 2 sets is enough alongside face pulls.</div><button class="ex-tip-btn" onclick="tip('rear delt flyes')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">DB hammer curls <span class="badge badge-green" style="font-size:9px">bicep thickness</span></span><span class="ex-sets">2×10–12</span></div><div class="ex-note">Go to 14–15kg. You hit 15 reps both sets at 12.5kg — way above target. Neutral grip, slower on the way down.</div><button class="ex-tip-btn" onclick="tip('DB hammer curls')">Technique tip ↗</button></div>
+  </div>
+
+  <div class="day-screen" id="ds-wed">
+    <div class="day-header"><div class="day-title">Wednesday</div><span class="badge badge-gray">Rest day</span></div>
+    <div class="section-label">Food</div>
+    <div class="meal-card"><div class="meal-type">Breakfast · 2 options</div><div class="meal-name">Option A: Scrambled eggs + ham + butter</div><div class="meal-steps">3 eggs in butter. Butcher's ham torn through. Salt, pepper, basil. Done in 5 min.</div><div class="macros"><span class="macro">~36g protein</span><span class="macro">~28g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Breakfast · Option B</div><div class="meal-name">Surreal granola (chocolate hazelnut or mixed berry) + full fat Greek yoghurt</div><div class="meal-steps">Pour granola over full fat Greek yoghurt instead of milk — thicker, more filling, more fat. Eat with a boiled egg on the side if you want more protein. Check the label — granola has more carbs than the cereals so treat it as an occasional option not a daily one.</div><div class="meal-tip">Better as a topping on yoghurt than a full bowl. Adds crunch and flavour without overdoing the carbs.</div><div class="macros"><span class="macro">~18g protein</span><span class="macro">~12g fat</span><span class="macro">~15g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Lunch · No cooking</div><div class="meal-name">Cold pork shoulder + boiled eggs + olives + cream cheese</div><div class="meal-steps">Everything from the fridge. Done in 2 minutes. Add a small handful of spinach wilted in butter alongside if you want veg — 60 seconds in a pan.</div><div class="macros"><span class="macro">~38g protein</span><span class="macro">~30g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Dinner · Make double for Thursday lunch</div><div class="meal-name">Mince in butter + parmesan + optional broccoli</div><div class="meal-steps">Brown 500g 25% fat mince in butter until well coloured. Season with garlic, salt, pepper. Grate parmesan generously. Optional: steam broccoli and toss in butter alongside. Make double — Thursday lunch is sorted.</div><div class="macros"><span class="macro">~48g protein</span><span class="macro">~34g fat</span><span class="macro">~2g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Sweet fix</div><div class="meal-name">Salted caramel cottage cheese pot</div><div class="meal-steps">Blitz full fat cottage cheese until smooth. Stir in 1 tbsp almond butter, ½ tsp raw honey, generous flaky salt. Crushed walnuts on top. Refrigerate or eat immediately.</div><div class="macros"><span class="macro">~16g protein</span><span class="macro">~10g fat</span><span class="macro">~6g carbs</span></div></div>
+  </div>
+
+  <div class="day-screen" id="ds-thu">
+    <div class="day-header"><div class="day-title">Thursday</div><span class="badge badge-pink">Lower — glutes</span></div>
+    <div class="info-box" style="margin-bottom:12px">🍳 <strong>Eat before this session.</strong> Fat is your fuel — skipping breakfast before heavy lower body causes nausea and failure. Eggs in butter at minimum 60–90 min before training.</div>
+    <div class="section-label">Food</div>
+    <div class="meal-card"><div class="meal-type">Breakfast · Non-negotiable on training days</div><div class="meal-name">Scrambled eggs + ham or pork shoulder + butter</div><div class="meal-steps">3 eggs in butter. Ham or cold pork shoulder alongside. Eat 60–90 min before training. This is your fuel — don't skip it.</div><div class="macros"><span class="macro">~36g protein</span><span class="macro">~28g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Lunch · No cooking</div><div class="meal-name">Leftover mince + parmesan — reheat in 5 min</div><div class="meal-steps">Wednesday's mince reheated in a pan with a knob of butter. Parmesan grated on top. Done. Optional: wilt spinach in the same pan for 60 seconds.</div><div class="macros"><span class="macro">~42g protein</span><span class="macro">~32g fat</span><span class="macro">~2g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Dinner · Post training · one pan</div><div class="meal-name">Pork shoulder steak + butter + broccoli or cauliflower</div><div class="meal-steps">Thick pork shoulder steak in butter, 4 min each side. Knob of butter melted over while resting. Steam broccoli or roast cauliflower alongside if you want veg. Both take less than the steak.</div><div class="macros"><span class="macro">~48g protein</span><span class="macro">~36g fat</span><span class="macro">~3g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Sweet fix · post training</div><div class="meal-name">Vanilla cheesecake bowl or Surreal with yoghurt</div><div class="meal-steps">Either: blitz cottage cheese smooth + mix 50/50 with Greek yoghurt + vanilla + cinnamon + berries. Or: pour Surreal cereal over full fat Greek yoghurt — the yoghurt softens it slightly, very satisfying post-training.</div><div class="macros"><span class="macro">~20g protein</span><span class="macro">~8g fat</span><span class="macro">~10g carbs</span></div></div>
+    <div class="section-label" style="margin-top:14px">Gym — lower body, glute focus (50–60 min)</div>
+    <div class="warmup-box"><strong>Eat before this session.</strong> Hip thrusts at heavy load fasted caused nausea and failure — always have your egg breakfast at least 60–90 min before. Hyperextensions first to activate posterior chain, then hip thrust while you are still fresh.</div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Hyperextensions <span class="badge badge-gray" style="font-size:9px">activation</span></span><span class="ex-sets">2×15 BW</span></div><div class="ex-note">Bodyweight. Squeeze glutes at top.</div><button class="ex-tip-btn" onclick="tip('hyperextensions')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Hip thrust <span class="badge badge-pink" style="font-size:9px">heavy · 3 sets</span></span><span class="ex-sets">3×6–10</span></div><div class="ex-note">Work at 85–90kg — not maximum load. 4 sets at 105kg fasted caused nausea and failure last session. 3 controlled sets with a full squeeze at the top every rep drives more hypertrophy than grinding through exhaustion. Always eat beforehand — at minimum your egg breakfast 60–90 min before. On day 1–2 of your cycle drop 10–15% and treat it as a feel day.</div><button class="ex-tip-btn" onclick="tip('hip thrust')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Kettlebell swings <span class="badge badge-pink" style="font-size:9px">posterior chain + fat burn</span></span><span class="ex-sets">3×15–20</span></div><div class="ex-note">Before BSS while legs are still fresh. Explosive hip hinge — bell drives from glutes not arms. Push hips back, snap forward, let the bell float. One of the best fat burn exercises in the plan.</div><button class="ex-tip-btn" onclick="tip('kettlebell swings')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Bulgarian split squat <span class="badge badge-blue" style="font-size:9px">compound</span></span><span class="ex-sets">3×8 each</span></div><div class="ex-note">Rear foot elevated. Start lighter than you think. Drive through the front heel to load the glute.</div><div style="margin-top:7px;padding:6px 9px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border2)"><div style="font-size:10px;font-weight:600;color:#059669;margin-bottom:2px">🔄 Alternative when you hate Bulgarians</div><div style="font-size:11px;color:var(--text2)"><strong>Single leg press — 45° machine, 3×10–12 each.</strong> High foot placement, drive through heel not toe. Same unilateral glute stimulus, no balance challenge, can go heavier. Don't let lower back peel off the pad at the bottom.</div></div><button class="ex-tip-btn" onclick="tip('Bulgarian split squat')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Cable kickbacks <span class="badge badge-pink" style="font-size:9px">glute isolation</span></span><span class="ex-sets">3×12–15 each</span></div><div class="ex-note">Drive heel back and up. Full squeeze at top. No momentum.</div><button class="ex-tip-btn" onclick="tip('cable kickbacks')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Seated leg curl <span class="badge badge-green" style="font-size:9px">hamstrings</span></span><span class="ex-sets">3×10–12</span></div><div class="ex-note">Full stretch, full contraction. Slow eccentric.</div><button class="ex-tip-btn" onclick="tip('seated leg curl')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Hip abduction machine <span class="badge badge-pink" style="font-size:9px">glute med</span></span><span class="ex-sets">2–3×15–20</span></div><div class="ex-note">Lighter weight, higher reps. Glute medius for shape and stability.</div><button class="ex-tip-btn" onclick="tip('hip abduction machine')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Dead bugs / Pallof press <span class="badge badge-gray" style="font-size:9px">core</span></span><span class="ex-sets">2–3 sets</span></div><div class="ex-note">Dead bugs: lower back pressed to floor. Pallof: resist rotation.</div><button class="ex-tip-btn" onclick="tip('dead bugs and Pallof press')">Technique tip ↗</button></div>
+  </div>
+
+  <div class="day-screen" id="ds-fri">
+    <div class="day-header"><div class="day-title">Friday</div><span class="badge badge-gray">Rest day</span></div>
+    <div class="section-label">Food</div>
+    <div class="meal-card"><div class="meal-type">Breakfast · 2 options</div><div class="meal-name">Option A: Scrambled eggs + pepperoni + mozzarella</div><div class="meal-steps">3 eggs in butter. Pepperoni and mozzarella torn through. Chilli flakes, garlic, salt. 5 minutes.</div><div class="macros"><span class="macro">~36g protein</span><span class="macro">~30g fat</span><span class="macro">~2g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Breakfast · Option B</div><div class="meal-name">Surreal (any flavour) + full fat milk or double cream</div><div class="meal-steps">Quick pour, done. Double cream makes it significantly more filling and more on plan than milk. Add a boiled egg on the side for protein.</div><div class="macros"><span class="macro">~14g protein</span><span class="macro">~12g fat</span><span class="macro">~7g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Lunch · No cooking</div><div class="meal-name">Pork shoulder + cream cheese + olives + boiled egg</div><div class="meal-steps">Everything cold from the fridge. 2 minutes. Add wilted spinach if you want veg.</div><div class="macros"><span class="macro">~38g protein</span><span class="macro">~30g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Dinner · Friday treat</div><div class="meal-name">T-bone or ribeye + butter + optional veg</div><div class="meal-steps">Best steak of the week. Very hot pan, 3 min each side, rest properly. Butter melted over while resting. Optional: roast cauliflower or broccoli in the same pan while the steak rests. Fish option: wild cod with double cream sauce.</div><div class="macros"><span class="macro">~55g protein</span><span class="macro">~40g fat</span><span class="macro">~2g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Sweet fix</div><div class="meal-name">Greek yoghurt + berries + granola topping</div><div class="meal-steps">Full fat Greek yoghurt. Small handful of Surreal granola on top for crunch. Fresh strawberries or blueberries. Vanilla extract and cinnamon stirred through. End-of-week reward — well earned.</div><div class="macros"><span class="macro">~15g protein</span><span class="macro">~10g fat</span><span class="macro">~12g carbs</span></div></div>
+  </div>
+
+  <div class="day-screen" id="ds-sat">
+    <div class="day-header"><div class="day-title">Saturday</div><span class="badge badge-amber">Pilates + upper</span></div>
+    <div class="section-label">Food</div>
+    <div class="meal-card"><div class="meal-type">Breakfast · Before Pilates · 2 options</div><div class="meal-name">Option A: Scrambled eggs + ham — quick, 5 min</div><div class="meal-steps">3 eggs in butter. Ham torn through. Eat 45 min before Pilates. Keep it simple — long day ahead.</div><div class="macros"><span class="macro">~32g protein</span><span class="macro">~24g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Breakfast · Option B — even faster</div><div class="meal-name">Surreal cereal + full fat milk — 90 seconds</div><div class="meal-steps">Pour. Eat. Go. Add a boiled egg on the side if you want more protein. Perfect when you're rushing to Pilates.</div><div class="macros"><span class="macro">~14g protein</span><span class="macro">~8g fat</span><span class="macro">~7g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Between Pilates and gym</div><div class="meal-name">Cottage cheese + berries or Surreal granola as topping</div><div class="meal-steps">Full fat cottage cheese straight from the pot. A few berries on top. Or a small handful of Surreal granola for crunch. Quick, protein-dense, won't sit heavy before the gym.</div><div class="macros"><span class="macro">~14g protein</span><span class="macro">~5g fat</span><span class="macro">~8g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Dinner · Saturday tradition</div><div class="meal-name">Air fryer burgers + melted mozzarella + optional broccoli</div><div class="meal-steps">25% fat mince patties, seasoned with salt, pepper, garlic powder. Air fry 200°C for 10–12 min, flip halfway. Mozzarella last 2 min. Optional: steam broccoli and eat alongside with butter. You've done Pilates and a full upper session — this is earned and stays on plan.</div><div class="macros"><span class="macro">~52g protein</span><span class="macro">~44g fat</span><span class="macro">~2g carbs</span></div></div>
+    <div class="section-label" style="margin-top:14px">Gym — full upper, no time limit</div>
+    <div class="warmup-box"><strong>Your biggest day.</strong> Body is warm from Pilates — hit compounds hard. Band external rotations 2 min then go heavy.</div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Bench press <span class="badge badge-blue" style="font-size:9px">compound · lead lift</span></span><span class="ex-sets">3×6–8</span></div><div class="ex-note">First exercise — completely fresh. Try 40kg. You hit 11 reps at 37.5kg last session. You are ready.</div><button class="ex-tip-btn" onclick="tip('bench press')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Lat pulldown <span class="badge badge-blue" style="font-size:9px">compound</span></span><span class="ex-sets">3×8–10</span></div><div class="ex-note">Try 36kg — you hit 10 reps at 34.2kg with a slight drop to 32kg on set 3. Pull to upper chest, slight lean back.</div><button class="ex-tip-btn" onclick="tip('lat pulldown')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Assisted pull-ups <span class="badge badge-blue" style="font-size:9px">compound</span></span><span class="ex-sets">3×6–8</span></div><div class="ex-note">Try +10kg or reduce assistance. Hit 8 clean reps all 3 sets at +9kg — consistent and ready to progress.</div><button class="ex-tip-btn" onclick="tip('assisted pull-ups')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Seated row — neutral grip <span class="badge badge-blue" style="font-size:9px">compound</span></span><span class="ex-sets">3×8–10</span></div><div class="ex-note">Neutral grip, pull elbows past torso, pause at top, slow return. Different stimulus to Tuesday's wide grip low row — mid-back and rhomboids.</div><button class="ex-tip-btn" onclick="tip('seated row neutral grip')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Seated tricep press <span class="badge badge-green" style="font-size:9px">isolation · Sat only</span></span><span class="ex-sets">3×10–12</span></div><div class="ex-note">Long head isolation — the largest part of the tricep, responsible for arm shape and thickness. Full stretch at the top is the whole point. Sit upright, keep elbows close, lower slowly behind your head. Your logged data puts you at 20kg+ here.</div><button class="ex-tip-btn" onclick="tip('seated overhead tricep press')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Machine shoulder press <span class="badge badge-amber" style="font-size:9px">shoulder · Sat only</span></span><span class="ex-sets">3×8–10</span></div><div class="ex-note">Machine post-Pilates — stabilisers already working hard. Fixed path means you can load properly without the stability tax. DB press on Tuesdays when fully fresh covers the free movement pattern.</div><button class="ex-tip-btn" onclick="tip('machine shoulder press')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Rear delt flyes <span class="badge badge-amber" style="font-size:9px">shoulder health</span></span><span class="ex-sets">3×12–15</span></div><div class="ex-note">Stay at 25kg, form first. Lead with elbows, keep traps relaxed — not a shrug.</div><button class="ex-tip-btn" onclick="tip('rear delt flyes')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Lateral raises <span class="badge badge-green" style="font-size:9px">isolation</span></span><span class="ex-sets">2×12–15</span></div><div class="ex-note">Light weight, controlled. Stop at shoulder height.</div><button class="ex-tip-btn" onclick="tip('lateral raises')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Incline DB curls <span class="badge badge-green" style="font-size:9px">isolation</span></span><span class="ex-sets">2×10–12</span></div><div class="ex-note">Go to 14–15kg — you hit 15 reps both sets at 12.5kg. Lie back, stretch at the bottom is the point.</div><button class="ex-tip-btn" onclick="tip('incline dumbbell curls')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Face pulls — face height <span class="badge badge-amber" style="font-size:9px">shoulder health</span></span><span class="ex-sets">3×15</span></div><div class="ex-note">Rope to nose level. Pull rope apart at end — external rotation is the whole point. Light weight only.</div><button class="ex-tip-btn" onclick="tip('face pulls')">Technique tip ↗</button></div>
+  </div>
+
+  <div class="day-screen" id="ds-sun">
+    <div class="day-header"><div class="day-title">Sunday</div><span class="badge badge-pink">Heavy lower</span></div>
+    <div class="section-label">Food</div>
+    <div class="meal-card"><div class="meal-type">Breakfast · 2 options</div><div class="meal-name">Option A: Scrambled eggs + ham or pork shoulder + butter</div><div class="meal-steps">3 eggs in butter. Ham or cold pork shoulder alongside. Biggest training day — eat a proper breakfast.</div><div class="macros"><span class="macro">~36g protein</span><span class="macro">~28g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Breakfast · Option B</div><div class="meal-name">Surreal + double cream + boiled egg alongside</div><div class="meal-steps">Pour Surreal with double cream. Cold boiled egg alongside. Quick, sufficient, on plan.</div><div class="macros"><span class="macro">~20g protein</span><span class="macro">~16g fat</span><span class="macro">~7g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Lunch · 1–2 hrs before training · grab and go</div><div class="meal-name">Pork shoulder + cold boiled eggs + olives + cream cheese</div><div class="meal-steps">Everything cold from the fridge. No cooking. Protein and fat before heavy squats — no carbs that will cause a crash.</div><div class="macros"><span class="macro">~40g protein</span><span class="macro">~32g fat</span><span class="macro">~1g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Dinner · Post session · Make double for Monday</div><div class="meal-name">Mince + fried eggs + parmesan + optional broccoli or cauliflower</div><div class="meal-steps">500g 25% fat mince in butter until well browned. 2 fried eggs same pan. Generous parmesan. Optional: steamed broccoli or roasted cauliflower in butter alongside. Make double — Monday sorted with zero effort.</div><div class="macros"><span class="macro">~58g protein</span><span class="macro">~46g fat</span><span class="macro">~3g carbs</span></div></div>
+    <div class="meal-card"><div class="meal-type">Sweet fix · well earned</div><div class="meal-name">Greek yoghurt + vanilla + cinnamon + berries — Sunday ritual</div><div class="meal-steps">Full fat Greek yoghurt. Vanilla extract, cinnamon, optional nutmeg. Top with blueberries or strawberries. Add a small handful of Surreal granola on top for crunch if you want it. This is your end of week reward — make it a ritual.</div><div class="macros"><span class="macro">~15g protein</span><span class="macro">~8g fat</span><span class="macro">~10g carbs</span></div></div>
+    <div class="section-label" style="margin-top:14px">Gym — heavy lower, main strength day (60–70 min)</div>
+    <div class="warmup-box"><strong>Hack squat first</strong> — biggest compound when completely fresh. Bilateral DB RDL second to load both hamstrings heavy, then B-stance immediately after while hamstrings are primed — this is the sequence that makes you actually feel it. Hyperextensions last as a lower back flush.</div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Hack squat <span class="badge badge-blue" style="font-size:9px">primary lift</span></span><span class="ex-sets">4×5–8</span></div><div class="ex-note">Full depth. Log weight every session — this is your main progression lift.</div><button class="ex-tip-btn" onclick="tip('hack squat')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">DB RDL — bilateral <span class="badge badge-blue" style="font-size:9px">primary lift</span></span><span class="ex-sets">3×8–10</span></div><div class="ex-note">Both legs, heavier load. Push hips back until you feel the hamstrings pull tight — that pull is your signal to reverse. Soft knee bend throughout. Do not squat down. This primes the hamstrings for the B-stance that follows.</div><button class="ex-tip-btn" onclick="tip('dumbbell RDL bilateral')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">B-stance DB RDL <span class="badge badge-blue" style="font-size:9px">primary lift</span></span><span class="ex-sets">3×10–12 each</span></div><div class="ex-note">Follows bilateral RDL — hamstrings already warm and switched on. 70/30 weight split, back foot just rests for balance. You should feel this significantly more than the bilateral version. Same hinge, one leg doing the work.</div><button class="ex-tip-btn" onclick="tip('B-stance dumbbell RDL')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Hip thrust <span class="badge badge-gray" style="font-size:9px">moderate · activation</span></span><span class="ex-sets">3×12–15</span></div><div class="ex-note">60–70% of Thursday's weight. Focus on feel and squeeze, not load. Thursday is your heavy hip thrust day — this is glute activation after the RDL work, nothing more. Don't compete with Thursday here.</div><button class="ex-tip-btn" onclick="tip('hip thrust')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Single leg cable RDL <span class="badge badge-pink" style="font-size:9px">posterior chain finisher</span></span><span class="ex-sets">2×10–12 each</span></div><div class="ex-note">Constant tension finisher after B-stance. Same hinge but fully unilateral. Start light until balance is comfortable.</div><button class="ex-tip-btn" onclick="tip('single leg cable RDL')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Seated leg curl <span class="badge badge-green" style="font-size:9px">hamstrings</span></span><span class="ex-sets">3×10–12</span></div><div class="ex-note">Hamstrings pre-fatigued from RDLs — keep weight sensible. Full stretch at top, full contraction at bottom.</div><button class="ex-tip-btn" onclick="tip('seated leg curl')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Leg extension <span class="badge badge-green" style="font-size:9px">quads</span></span><span class="ex-sets">3×10–12</span></div><div class="ex-note">Full extension at top, slow return.</div><button class="ex-tip-btn" onclick="tip('leg extension')">Technique tip ↗</button></div>
+    <div class="exercise-card"><div class="ex-header"><span class="ex-name">Hyperextensions <span class="badge badge-gray" style="font-size:9px">lower back flush · final</span></span><span class="ex-sets">2×15 BW</span></div><div class="ex-note">Very last exercise — lower back flush after everything else. Bodyweight only. Squeeze glutes at the top. Do not load this after a heavy session.</div><button class="ex-tip-btn" onclick="tip('hyperextensions')">Technique tip ↗</button></div>
+    <div class="info-box"><strong>Sunday batch cook:</strong> Hard boil 6 eggs while mince cooks — store in fridge cold, ready all week. Make double mince. Monday breakfast, Monday lunch and Thursday lunch all sorted in one session. Cold boiled eggs keep for up to 5 days in the fridge.</div>
+  </div>
+</div>
+
+<!-- FOOD LOG -->
+<div class="page" id="pg-food">
+  <div class="card">
+    <div class="card-title">Log a meal</div>
+    <div class="row-input">
+      <input type="text" id="fi" placeholder="e.g. Scrambled eggs with salmon" style="flex:2"/>
+      <select id="ft"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select>
+    </div>
+    <div class="flex">
+      <button class="btn btn-primary" onclick="addMeal()">Log meal</button>
+      <button class="btn btn-info btn-sm" onclick="askMeal()">Does this fit my plan? ↗</button>
+    </div>
+  </div>
+  <div class="card"><div class="card-title">Today's log</div><div id="food-log"></div><div id="food-cal" style="margin-top:8px"></div></div>
+  <div class="card"><div class="card-title">Past 7 days</div><div id="food-hist"></div></div>
+  <div class="info-box"><strong>Calorie awareness:</strong> Estimates are rough guides. Target is ~2,000 cal on rest days, ~2,400 on training days. Awareness, not obsession.<br><br><strong>Cold boiled eggs tip:</strong> If you want something to go with them instead of Warburtons, try Ryvita dark rye crispbreads — much lower carb, no added sugar, genuinely filling with butter or cream cheese. Or make parmesan crisps: melt parmesan in a pan until crispy and let cool. Zero carbs, excellent crunch.<br><br><strong>Fish rotation:</strong> Wild cod, haddock and pollock are excellent swaps for salmon — often cheaper, genuinely wild, and cook identically in butter. Pork shoulder slices are great at breakfast or lunch too.</div>
+</div>
+
+<!-- GYM LOG -->
+<div class="page" id="pg-gym">
+  <div class="card">
+    <div class="card-title">Log session</div>
+    <div class="sess-tabs">
+      <button class="sess-btn active" onclick="selSess('tue')">Tuesday</button>
+      <button class="sess-btn" onclick="selSess('thu')">Thursday</button>
+      <button class="sess-btn" onclick="selSess('sat')">Saturday</button>
+      <button class="sess-btn" onclick="selSess('sun')">Sunday</button>
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="section-label" style="margin-bottom:6px">How much time do you have?</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button id="mode-speed" class="btn btn-sm" onclick="setMode('speed')" style="border-color:#EF4444;color:#EF4444">⚡ Speed (30–35 min)</button>
+        <button id="mode-standard" class="btn btn-sm btn-primary" onclick="setMode('standard')">✓ Standard (45–50 min)</button>
+        <button id="mode-full" class="btn btn-sm" onclick="setMode('full')" style="border-color:#2D6A4F;color:#2D6A4F">★ Full session</button>
+      </div>
+      <div id="mode-desc" style="font-size:12px;color:var(--text2);margin-top:8px;padding:8px 10px;background:var(--bg2);border-radius:var(--radius-sm)"></div>
+    </div>
+    <div class="info-box" id="sess-info" style="margin-bottom:10px"></div>
+    <div class="slider-row"><label>How was it?</label><input type="range" min="1" max="5" step="1" id="sess-rate" oninput="sv('sess-rate-v',this.value)" value="3" style="max-width:200px"/><span class="slider-val" id="sess-rate-v">3</span></div>
+    <div class="section-label" style="margin-top:8px">Weights used today (kg)</div>
+    <div id="lift-log"></div>
+    <div class="flex" style="margin-top:10px">
+      <button class="btn btn-primary" onclick="saveSess()">Save session</button>
+      <button class="btn btn-info btn-sm" onclick="askProgress()">Analyse my progress ↗</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Progression charts</div>
+    <div id="prog-charts"><div style="font-size:13px;color:var(--text3)">Log at least 2 sessions to see charts.</div></div>
+  </div>
+  <div class="card"><div class="card-title">Personal bests</div><div id="pb-list"></div></div>
+  <div class="card"><div class="card-title">Session history</div><div id="sess-hist"></div></div>
+  <div class="card" style="border:1.5px solid #1E40AF">
+    <div class="card-title" style="color:#1E40AF">💾 Save and restore your data</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">iOS Safari doesn't reliably save data from local HTML files. Use this to back up after every session — paste your backup code here each time you open the dashboard.</div>
+    <div class="section-label">Step 1 — After each session, export your data</div>
+    <button class="btn btn-primary" style="margin-bottom:10px;width:100%" onclick="exportData()">📋 Export data — copy this after every session</button>
+    <textarea id="export-out" style="width:100%;height:80px;font-size:10px;font-family:monospace;margin-bottom:12px" placeholder="Your backup code will appear here — copy it all and save somewhere safe (Notes app, email to yourself)"></textarea>
+    <div class="section-label">Step 2 — When you reopen the dashboard, paste your backup here</div>
+    <textarea id="import-in" style="width:100%;height:80px;font-size:10px;font-family:monospace;margin-bottom:8px" placeholder="Paste your backup code here then tap Restore"></textarea>
+    <div class="flex">
+      <button class="btn btn-primary" onclick="importData()">✅ Restore data</button>
+      <button class="btn btn-sm" onclick="inspectSessions()">Check sessions</button>
+      <button class="btn btn-sm" onclick="inspectPBs()">Check PBs</button>
+    </div>
+    <pre id="debug-out" style="font-size:10px;color:var(--text2);background:var(--bg2);padding:8px;border-radius:6px;overflow:auto;max-height:180px;white-space:pre-wrap;margin-top:8px">Tap Check sessions or Check PBs to inspect saved data</pre>
+    <div style="margin-top:10px;padding:8px 10px;background:var(--red-bg);border-radius:var(--radius-sm);font-size:11px;color:var(--red)">⚠️ Reset all data — only use if you want to start fresh<br><button class="btn btn-sm" style="color:#EF4444;border-color:#EF4444;margin-top:6px" onclick="if(confirm('This permanently deletes all your sessions, habits, PBs and food logs. Are you absolutely sure?')){localStorage.removeItem(SK);location.reload()}">Reset everything</button></div>
+  </div>
+</div>
+<div class="page" id="pg-supps">
+  <div class="card">
+    <div class="card-title">Morning — with breakfast</div>
+    <div class="section-label">Fat soluble, energising — take in the morning</div>
+    <div id="supp-am"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Evening — 1–2 hours before bed</div>
+    <div class="section-label">Calming, sleep-supporting — always evening</div>
+    <div id="supp-pm"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Training days only</div>
+    <div id="supp-train"></div>
+  </div>
+  <div class="flex" style="margin-bottom:10px">
+    <button class="btn btn-primary" onclick="saveSupps()">Save today</button>
+    <button class="btn" onclick="resetSupps()">Reset for new day</button>
+  </div>
+  <div class="info-box" id="supp-streak"></div>
+  <div class="info-box" style="margin-top:8px"><strong>Magnesium malate — take daily:</strong> Despite being an energy supplement, malate supports mitochondrial function constantly, not just on training days. On rest days it helps recovery from the previous session and maintains energy levels. Slightly lower dose on rest days is fine but daily is better than sporadic.</div>
+  <div class="info-box" style="margin-top:8px"><strong>Methylated B complex:</strong> Regular B vitamins need converting by your body. A common genetic variant (MTHFR) makes this inefficient for many people. Methylated versions (methylfolate + methylcobalamin) are already in the active form — better absorbed by everyone. Good brands: Thorne, Seeking Health, Jarrow. Take in the morning as B vitamins are energising.</div>
+</div>
+
+<!-- GROCERY LIST -->
+<div class="page" id="pg-grocery">
+  <div class="card">
+    <div class="card-title">Weekly grocery list</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Based on your full week's meal plan. Tick off as you shop.</div>
+    <div id="groc-list"></div>
+  </div>
+  <div class="flex">
+    <button class="btn btn-primary" onclick="resetGroc()">Reset list</button>
+    <button class="btn btn-info btn-sm" onclick="batchTips()">Batch cook tips ↗</button>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="page" id="pg-progress">
+  <div class="card">
+    <div class="card-title">Body metrics — update monthly</div>
+    <div class="lift-row"><span class="lift-name">Waist (cm)</span><input type="number" class="lift-input" id="waist-in" placeholder="—"/></div>
+    <div class="lift-row"><span class="lift-name">Weight (kg)</span><input type="number" class="lift-input" id="weight-in" placeholder="—"/></div>
+    <div class="lift-row"><span class="lift-name">Clothes fit</span>
+      <select id="clothes-in">
+        <option>Tighter than before</option><option>Same as before</option><option>Slightly looser</option><option>Noticeably looser</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="margin-top:10px" onclick="saveMetrics()">Save metrics</button>
+  </div>
+  <div class="card"><div class="card-title">Metrics history</div><div id="metrics-hist"></div></div>
+  <div class="card">
+    <div class="card-title">Progress photos</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.6">Every 2 weeks — same time, same light, same position. Sunday morning before eating is best.</div>
+    <div id="photo-msg"></div>
+    <button class="btn btn-sm" style="margin-top:8px" onclick="logPhoto()">Mark photo taken today</button>
+  </div>
+  <div class="card">
+    <div class="card-title">30-day streak</div>
+    <div class="section-label">Green = 5+ habits · Amber = 2–4 habits · Empty = not logged</div>
+    <div class="streak-grid" id="streak-grid"></div>
+  </div>
+</div>
+
+<!-- AI COACH -->
+<div class="page" id="pg-coach">
+  <div class="card">
+    <div class="card-title">This week's coaching questions</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Generated from your tracker data. Answer any or all — then send for feedback.</div>
+    <div id="coach-qs"></div>
+    <div style="margin-top:10px">
+      <div class="section-label">Your answers</div>
+      <textarea id="coach-ans" placeholder="Type your answers here — or just tell me how the week went..."></textarea>
+    </div>
+    <div class="flex" style="margin-top:8px">
+      <button class="btn btn-primary" onclick="sendCoach()">Send to Claude for coaching ↗</button>
+      <button class="btn" onclick="genCoachQs()">Refresh questions</button>
+    </div>
+    <div class="info-box" style="margin-top:10px">
+      <strong>How to use the AI coach:</strong> Copy the text from the "Your answers" box along with the questions above, open a new Claude conversation, and paste it in with the message "Here is my weekly check-in." Claude will give you detailed coaching feedback and your focus for the week ahead.
+    </div>
+  </div>
+  <div class="card"><div class="card-title">This week at a glance</div><div id="week-summary"></div></div>
+  <div class="card">
+    <div class="card-title">Sunday reset checklist</div>
+    <div id="reset-list"></div>
+  </div>
+</div>
+
+<footer>Victoria's Health Dashboard · Data saved locally in your browser · Last updated <span id="footer-date"></span></footer>
+
+<script>
+const SK = 'v_health_v4';
+const load = () => { try { return JSON.parse(localStorage.getItem(SK) || '{}'); } catch(e) { return {}; } };
+const save = d => { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) {} };
+const today = () => new Date().toISOString().split('T')[0];
+const fmtD = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+let S = load();
+let charts = {};
+let curSess = 'tue';
+let curMode = 'standard';
+
+const MODE_CONFIG = {
+  speed:    { label: '⚡ Speed',    maxTier: 1, desc: 'Tier 1 only — the exercises that drive your results. Everything that matters, nothing that doesn\'t. In and out fast.', color: '#EF4444' },
+  standard: { label: '✓ Standard', maxTier: 2, desc: 'Tier 1 + Tier 2 — full effective session. Compounds, isolation, shoulder health. The go-to version most weeks.', color: '#1E40AF' },
+  full:     { label: '★ Full',     maxTier: 3, desc: 'All exercises — when you have time and energy. Every muscle group fully covered including all finishing work.', color: '#2D6A4F' }
+};
+
+function setMode(mode) {
+  if (document.getElementById('lift-log')) saveInProgress();
+  curMode = mode;
+  document.querySelectorAll('[id^=mode-]').forEach(b => {
+    if (!b.id.includes('desc')) {
+      b.style.fontWeight = '400';
+      b.style.opacity = '0.7';
+    }
+  });
+  const btn = document.getElementById('mode-' + mode);
+  if (btn) { btn.style.fontWeight = '600'; btn.style.opacity = '1'; }
+  const cfg = MODE_CONFIG[mode];
+  document.getElementById('mode-desc').textContent = cfg.desc;
+  renderLiftLog();
+}
+
+const HABITS = [
+  { id: 'supps', name: 'Morning supplements', sub: 'Omega-3, D3, lion\'s mane, creatine, B complex, mag malate' },
+  { id: 'bfast', name: 'On-plan breakfast', sub: 'Scrambled eggs with protein and fat' },
+  { id: 'lunch', name: 'On-plan lunch', sub: 'Smoked salmon, prawns, leftovers, boiled eggs' },
+  { id: 'dinner', name: 'On-plan dinner', sub: 'Protein-focused, good fats, low carb' },
+  { id: 'steps', name: 'Steps target', sub: '6,000+ steps today' },
+  { id: 'evening', name: 'Evening wind-down', sub: 'Mag L-threonate + ashwagandha + zinc, screens off 30 min before bed' },
+  { id: 'gym', name: 'Gym session', sub: 'Tue/Thu/Sat/Sun only' }
+];
+
+const SUPP_AM = [
+  { name: 'Nordic Omega-3', note: 'With food — fat soluble' },
+  { name: 'D3 + K2', note: 'With food — fat soluble' },
+  { name: 'Lion\'s mane (Dirtea)', note: 'Gently energising — morning only' },
+  { name: 'Creatine 3–5g', note: 'Every day, not just gym days' },
+  { name: 'Methylated B complex', note: 'Energising — always morning' },
+  { name: 'Magnesium malate', note: 'Energy + ATP production — take daily, not just training days' },
+  { name: 'Electrolytes (Relyte)', note: 'Full serving training days · half on rest days' }
+];
+
+const SUPP_PM = [
+  { name: 'Magnesium L-threonate (Neuro Mag)', note: 'Brain + sleep architecture — must be evening' },
+  { name: 'Zinc 8–10mg', note: 'With dinner — never on empty stomach' },
+  { name: 'Ashwagandha KSM-66', note: 'Cortisol + sleep — 4–6 weeks to feel full effect' }
+];
+
+const SUPP_TRAIN = [
+  { name: 'Collagen peptides + vitamin C', note: '30–60 min pre-training — joint health' },
+  { name: 'Cordyceps (Dirtea)', note: 'Optional pre-training — oxygen efficiency' }
+];
+
+const SESSIONS = {
+  tue: {
+    name: 'Tuesday — upper, efficient',
+    info: 'Tight session — compounds first, shoulder health covered, biceps and rear delts to finish. In and out in under an hour.',
+    lifts: [
+      { name: 'Bench press',         sets: '3', repsTarget: '6–8',   tier: 1, nextTarget: '40kg — you hit 11 reps at 37.5kg' },
+      { name: 'Assisted pull-ups',   sets: '3', repsTarget: '6–8',   tier: 1, nextTarget: 'Try +10kg or reduce assistance' },
+      { name: 'Low row',               sets: '3', repsTarget: '8–10',  tier: 1, nextTarget: 'Jump to 27.5–30kg — you were doing 14 reps at 20kg. Wide grip, elbows flare out.' },
+      { name: 'DB shoulder press',   sets: '3', repsTarget: '8–10',  tier: 1, nextTarget: 'Stay at 23kg — do it fresh, earlier in session' },
+      { name: 'Assisted dips',         sets: '2', repsTarget: '8–10',  tier: 2, nextTarget: 'Try +11kg — compound tricep and chest, 9kg added weight' },
+      { name: 'Face pulls',          sets: '3', repsTarget: '15',    tier: 2, nextTarget: 'Shoulder health — light, non-negotiable' },
+      { name: 'Rear delt flyes',     sets: '2', repsTarget: '12–15', tier: 2, nextTarget: 'Counterbalances all the pressing — lead with elbows, traps relaxed' },
+      { name: 'DB hammer curls',     sets: '2', repsTarget: '10–12', tier: 3, nextTarget: 'Go to 14–15kg — you hit 15 reps at 12.5kg' }
+    ]
+  },
+  thu: {
+    name: 'Thursday — lower body, glute focus',
+    info: 'Heavy hip thrust day — 3 sets at 85–90kg, quality over maximum load. Always eat before this session. Training fasted on low carb with heavy compounds causes nausea and kills performance. KB swings before BSS while legs are fresh.',
+    lifts: [
+      { name: 'Hyperextensions',       sets: '2', repsTarget: '15',         tier: 1, noWeight: true },
+      { name: 'Hip thrust',            sets: '3', repsTarget: '8–10',       tier: 1, nextTarget: 'Work at 85–90kg — 3 sets, quality over maximum load. 4 sets at 105kg fasted caused nausea. Always eat beforehand. Full squeeze at top every rep — contraction quality drives hypertrophy more than maximum weight.' },
+      { name: 'Kettlebell swings',     sets: '3', repsTarget: '15–20',      tier: 2, nextTarget: 'Before BSS while legs are still fresh — explosive hip hinge, bell drives from glutes not arms' },
+      { name: 'Bulgarian split squat', sets: '3', repsTarget: '8 each',       tier: 1, nextTarget: 'Swap for Single leg press (45° machine, high foot) when you need a change — log whichever you did' },
+      { name: 'Single leg press',       sets: '3', repsTarget: '10–12 each',   tier: 1, nextTarget: 'BSS alternative — high foot on 45° machine, drive through heel. Use INSTEAD of BSS, not in addition.' },
+      { name: 'Seated leg curl',       sets: '3', repsTarget: '10–12',      tier: 2 },
+      { name: 'Cable kickbacks',       sets: '3', repsTarget: '12–15 each', tier: 2 },
+      { name: 'Hip abduction',         sets: '3', repsTarget: '15–20',      tier: 3 },
+      { name: 'Dead bugs',             sets: '3', repsTarget: '10 each',    tier: 3, noWeight: true }
+    ]
+  },
+  sat: {
+    name: 'Saturday — Pilates + full upper',
+    info: 'Your biggest day. Body is warm from Pilates — hit compounds hard and fresh. No time limit. Full upper coverage.',
+    lifts: [
+      { name: 'Bench press',           sets: '3', repsTarget: '6–8',   tier: 1, nextTarget: '40kg — you are ready' },
+      { name: 'Lat pulldown',          sets: '3', repsTarget: '8–10',  tier: 1, nextTarget: 'Try 36kg — you hit 10 reps at 34.2kg' },
+      { name: 'Seated row',            sets: '3', repsTarget: '8–10',  tier: 1, nextTarget: 'Neutral grip, mid-back focus — different stimulus to Tuesday\'s wide grip low row' },
+      { name: 'Machine shoulder press',sets: '3', repsTarget: '8–10',  tier: 1, nextTarget: 'Fixed path post-Pilates — stabilisers already working, machine keeps it clean' },
+      { name: 'Assisted pull-ups',     sets: '3', repsTarget: '6–8',   tier: 2, nextTarget: 'Try +10kg or reduce assistance' },
+      { name: 'Seated tricep press',   sets: '3', repsTarget: '10–12', tier: 2, nextTarget: 'Long head isolation — full stretch at top. Start where your data shows, around 20kg+' },
+      { name: 'Rear delt flyes',       sets: '3', repsTarget: '12–15', tier: 2, nextTarget: 'Stay at 25kg — form first' },
+      { name: 'Face pulls',            sets: '3', repsTarget: '15',    tier: 2, nextTarget: 'Rope at nose height, pull apart at end' },
+      { name: 'Lateral raises',        sets: '2', repsTarget: '12–15', tier: 3, nextTarget: 'Match or increase from current' },
+      { name: 'Incline DB curls',      sets: '2', repsTarget: '10–12', tier: 3, nextTarget: 'Go to 14–15kg' }
+    ]
+  },
+  sun: {
+    name: 'Sunday — heavy lower, main strength day',
+    info: 'Heavy on hack squat and RDL. Hip thrust is moderate today — glute activation not strength, Thursday is your hip thrust PB day. Hyperextensions last as a lower back flush.',
+    lifts: [
+      { name: 'Hack squat',            sets: '4', repsTarget: '5–8',         tier: 1 },
+      { name: 'DB RDL (bilateral)',     sets: '3', repsTarget: '8–10',        tier: 1, nextTarget: 'Both legs, heavy load. Push hips back, feel hamstrings pull tight before reversing. Keep soft knee bend throughout.' },
+      { name: 'B-stance DB RDL',       sets: '3', repsTarget: '10–12 each',  tier: 1, nextTarget: 'Follow bilateral RDL — hamstrings already primed. 70/30 weight split front leg. You should feel this much more after the bilateral warm-up.' },
+      { name: 'Hip thrust',            sets: '3', repsTarget: '12–15',       tier: 1, nextTarget: 'Moderate today — 60–70% of Thursday weight. Focus on squeeze and feel, not load.' },
+      { name: 'Seated leg curl',       sets: '3', repsTarget: '10–12',       tier: 2 },
+      { name: 'Leg extension',         sets: '3', repsTarget: '10–12',       tier: 2 },
+      { name: 'Single leg cable RDL',  sets: '2', repsTarget: '10–12 each',  tier: 2, nextTarget: 'Constant tension finisher — unilateral, addresses imbalances' },
+      { name: 'Hyperextensions',       sets: '2', repsTarget: '15',          tier: 3, noWeight: true, nextTarget: 'Final exercise — lower back flush after everything else. Bodyweight only.' }
+    ]
+  }
+};
+
+const PRIMARY_LIFTS = ['Hack squat', 'DB RDL (bilateral)', 'B-stance DB RDL', 'Hip thrust (Thu heavy)', 'Bench press', 'Assisted pull-ups', 'Seated tricep press', 'Single leg press'];
+
+// Helper to get all lift names for a session
+const liftNames = sess => SESSIONS[sess].lifts.map(l => l.name);
+
+// Seed baseline data from Victoria's last logged Saturday session
+function seedBaseline() {
+  if (!S.sessions) S.sessions = [];
+  if (!S.pbs) S.pbs = {};
+  const alreadySeeded = S.sessions.some(s => s.seeded);
+  if (alreadySeeded) return;
+
+  const baselineDate = '2025-04-19'; // approximate last session
+  const baselineLifts = {
+    'Bench press':       { sets: [{kg:37.5,reps:11},{kg:37.5,reps:8},{kg:37.5,reps:10}] },
+    'Assisted pull-ups': { sets: [{kg:9,reps:8},{kg:9,reps:8},{kg:9,reps:8}] },
+    'Assisted dips':     { sets: [{kg:9,reps:10},{kg:9,reps:10}] },
+    'Seated tricep press': { sets: [{kg:20,reps:10},{kg:20,reps:10}] },
+    'Seated row':        { sets: [{kg:20,reps:14},{kg:20,reps:13},{kg:20,reps:14}] },
+    'Lat pulldown':      { sets: [{kg:34.2,reps:10},{kg:34.2,reps:10},{kg:32,reps:10}] },
+    'DB shoulder press': { sets: [{kg:23,reps:7},{kg:23,reps:5},{kg:20.3,reps:6}] },
+    'DB hammer curls':   { sets: [{kg:12.5,reps:15},{kg:12.5,reps:15}] },
+    'Rear delt flyes':   { sets: [{kg:25,reps:12},{kg:25,reps:10},{kg:25,reps:10}] }
+  };
+
+  // Set PBs from baseline
+  Object.entries(baselineLifts).forEach(([name, data]) => {
+    const maxKg = Math.max(...data.sets.map(s => s.kg || 0));
+    if (maxKg > 0) S.pbs[name] = { sets: data.sets, maxKg };
+  });
+
+  S.sessions.push({
+    date: baselineDate,
+    sessName: 'Saturday — baseline (previous session)',
+    sessKey: 'sat',
+    rating: 4,
+    lifts: baselineLifts,
+    seeded: true
+  });
+  save(S);
+}
+
+const CAL_MAP = { breakfast: 450, lunch: 380, dinner: 650, snack: 150 };
+
+const GROCERY = {
+  'Protein — weekly staples': [
+    { item: 'Eggs', qty: '2 dozen — hard boil 6 on Sunday' },
+    { item: '25% fat beef mince', qty: '1–1.5kg — make double Sun + Wed' },
+    { item: 'Ribeye steak', qty: '2 per week — Tue dinner' },
+    { item: 'Sirloin, T-bone or tomahawk', qty: '1 per week — Mon or Fri dinner' },
+    { item: 'Pork shoulder slices', qty: '400–500g — lunch anchor every day' },
+    { item: 'Pork shoulder steaks (thick cut)', qty: '2 — Thu dinner' },
+    { item: "Butcher's ham", qty: '200g — breakfasts' },
+    { item: 'Pepperoni', qty: '100g — breakfast add-in' },
+    { item: 'Pure pork sausages (butcher)', qty: '6 pack — no rusk, no fillers, no sugar' }
+  ],
+  'Fish — optional swaps': [
+    { item: 'Wild cod or haddock', qty: 'Optional — Mon/Fri dinner swap' },
+    { item: 'Smoked salmon (Scottish/Norwegian)', qty: 'Optional — breakfast swap' }
+  ],
+  'Dairy and fats': [
+    { item: 'Butter (Kerrygold or Anchor)', qty: '500g minimum — melt on everything' },
+    { item: 'Full fat cream cheese', qty: '2 × 200g — add to meals and sweet fixes' },
+    { item: 'Full fat cottage cheese', qty: '2 × 300g — sweet fixes all week' },
+    { item: 'Full fat Greek yoghurt', qty: '500g — sweet fixes and between sessions' },
+    { item: 'Mozzarella', qty: '2 balls' },
+    { item: 'Parmesan', qty: 'Block — grate over mince' },
+    { item: 'Double cream', qty: '200ml — use with Surreal instead of milk' }
+  ],
+  'Surreal products': [
+    { item: 'Surreal cinnamon cereal', qty: 'Easy breakfast — 7g net carbs, 0g sugar' },
+    { item: 'Surreal chocolate (Choco Pops)', qty: 'Easy breakfast — 6g net carbs, 0g sugar' },
+    { item: 'Surreal chocolate hazelnut granola', qty: 'Yoghurt topping only — not a full bowl' },
+    { item: 'Surreal mixed berry granola', qty: 'Yoghurt topping only — not a full bowl' }
+  ],
+  'Vegetables': [
+    { item: 'Broccoli', qty: 'Steam in butter and salt alongside steak or mince' },
+    { item: 'Cauliflower', qty: 'Roast in butter — excellent with everything' },
+    { item: 'Spinach (fresh)', qty: 'Wilt in butter 60 sec — goes in eggs or alongside meat' },
+    { item: 'Sweetcorn (small tin, occasional)', qty: 'Higher carbs — use sparingly' }
+  ],
+  'Sweet fix ingredients': [
+    { item: 'Organic raw cocoa powder', qty: 'Chocolate cheesecake pot' },
+    { item: 'Raw honey (organic)', qty: '½ tsp per serving — use sparingly' },
+    { item: 'Almond butter (no added sugar)', qty: 'Salted caramel pot' },
+    { item: 'Vanilla extract (pure)', qty: 'Every yoghurt bowl' },
+    { item: 'Flaky sea salt (Maldon)', qty: 'Makes sweet fixes actually taste right' },
+    { item: 'Cinnamon (ground)', qty: 'Goes in everything sweet' },
+    { item: 'Blueberries or strawberries', qty: 'Fresh or frozen — sweet fix topping' },
+    { item: 'Walnuts', qty: 'Crushed — crunch topping' }
+  ],
+  'Cupboard': [
+    { item: 'Olives (jar)', qty: 'Large jar — lunches every day' },
+    { item: 'Tinned tomatoes', qty: '2 tins — Wednesday mince' },
+    { item: 'Garlic (fresh or paste)', qty: '1 bulb or paste' },
+    { item: 'Salt, pepper, basil, chilli flakes', qty: 'As needed' }
+  ],
+  'Supplements to reorder': [
+    { item: 'Creatine (Momentous)', qty: 'Check stock' },
+    { item: 'Magnesium L-threonate (Momentous)', qty: 'Check stock' },
+    { item: 'Magnesium malate (Momentous)', qty: 'Check stock' },
+    { item: 'Ashwagandha KSM-66 (Transparent Labs)', qty: 'Check stock' },
+    { item: 'Methylated B complex (Thorne)', qty: 'Check stock' },
+    { item: 'Zinc 15mg (Nature\'s Best)', qty: 'Check stock' }
+  ]
+};
+
+const RESETS = [
+  'Pre-boil 6 eggs for the week',
+  'Check meat and fish in the fridge',
+  'Pack gym bag for Tuesday',
+  'Block gym sessions in calendar this week',
+  'Load supplement AM and PM organisers',
+  'Take progress photo (if 2 weeks since last)',
+  'Review last week\'s lifts and set a Sunday target'
+];
+
+function nav(s) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pg-' + s).classList.add('active');
+  event.target.classList.add('active');
+  if (s === 'today') renderToday();
+  if (s === 'food') renderFood();
+  if (s === 'gym') renderGym();
+  if (s === 'supps') renderSupps();
+  if (s === 'grocery') renderGrocery();
+  if (s === 'progress') renderProgress();
+  if (s === 'coach') renderCoach();
+}
+
+function sv(id, v) { document.getElementById(id).textContent = v; }
+
+function updSteps(v) {
+  document.getElementById('steps-val').textContent = parseInt(v).toLocaleString();
+  document.getElementById('steps-bar').style.width = Math.min(100, Math.round(v / 7000 * 100)) + '%';
+  document.getElementById('steps-msg').textContent = v >= 7000 ? 'Target hit!' : v >= 6000 ? 'Almost there' : v >= 3000 ? 'Keep going — target is 6,000+' : 'Target: 6,000–7,000 steps';
+}
+
+function calBadge(cals) {
+  const cls = cals < 1600 ? 'badge-green' : cals < 2200 ? 'badge-green' : cals < 2600 ? 'badge-amber' : 'badge-red';
+  const msg = cals < 1600 ? 'Light day' : cals < 2200 ? 'On track' : cals < 2600 ? 'Slightly high' : 'Over target';
+  return `<span class="badge ${cls}">~${cals} cal estimated — ${msg}</span>`;
+}
+
+function calcCals(foods) {
+  return (foods || []).reduce((s, f) => s + (CAL_MAP[f.meal.toLowerCase()] || 300), 0);
+}
+
+function renderToday() {
+  const t = today();
+  const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('td-title').textContent = dateStr;
+  document.getElementById('hdr-date').textContent = dateStr;
+  document.getElementById('footer-date').textContent = dateStr;
+  if (!S.days) S.days = {};
+  if (!S.days[t]) S.days[t] = { habits: {}, steps: 0, energy: 5, clarity: 5, food: [] };
+  const d = S.days[t];
+  document.getElementById('steps-sl').value = d.steps || 0;
+  document.getElementById('en-sl').value = d.energy || 5;
+  document.getElementById('cl-sl').value = d.clarity || 5;
+  updSteps(d.steps || 0); sv('en-v', d.energy || 5); sv('cl-v', d.clarity || 5);
+  const done = Object.values(d.habits).filter(Boolean).length;
+  document.getElementById('td-score').textContent = done + '/' + HABITS.length + ' habits done';
+  const gdays = Object.values(S.days || {}).filter(x => Object.values(x.habits || {}).filter(Boolean).length >= 5).length;
+  const cals = calcCals(d.food);
+  document.getElementById('td-metrics').innerHTML = `
+    <div class="metric"><div class="metric-val">${done}/${HABITS.length}</div><div class="metric-lbl">Habits</div></div>
+    <div class="metric"><div class="metric-val">${d.energy || 5}/10</div><div class="metric-lbl">Energy</div></div>
+    <div class="metric"><div class="metric-val">${(d.steps || 0).toLocaleString()}</div><div class="metric-lbl">Steps</div></div>
+    <div class="metric"><div class="metric-val">~${cals}</div><div class="metric-lbl">Cal est.</div></div>
+    <div class="metric"><div class="metric-val">${gdays}</div><div class="metric-lbl">Green days</div></div>
+  `;
+  const el = document.getElementById('habits-list'); el.innerHTML = '';
+  HABITS.forEach(h => {
+    const ck = d.habits[h.id] || false;
+    const div = document.createElement('div'); div.className = 'habit-row';
+    div.innerHTML = `<div><div class="habit-name">${h.name}</div><div class="habit-sub">${h.sub}</div></div><button class="check ${ck ? 'done' : ''}" onclick="togH('${h.id}')">${ck ? '✓' : ''}</button>`;
+    el.appendChild(div);
+  });
+  renderQF();
+}
+
+function togH(id) { const t = today(); S.days[t].habits[id] = !S.days[t].habits[id]; save(S); renderToday(); }
+
+function saveToday() {
+  const t = today();
+  S.days[t].steps = parseInt(document.getElementById('steps-sl').value);
+  S.days[t].energy = parseInt(document.getElementById('en-sl').value);
+  S.days[t].clarity = parseInt(document.getElementById('cl-sl').value);
+  save(S); renderToday();
+}
+
+function addQF() {
+  const t = today(), f = document.getElementById('qf').value.trim(), m = document.getElementById('qm').value;
+  if (!f) return;
+  if (!S.days[t].food) S.days[t].food = [];
+  S.days[t].food.push({ name: f, meal: m, time: new Date().toTimeString().slice(0, 5) });
+  document.getElementById('qf').value = ''; save(S); renderQF();
+}
+
+function renderQF() {
+  const t = today(), foods = (S.days[t] && S.days[t].food) || [];
+  const cals = calcCals(foods);
+  document.getElementById('qf-list').innerHTML = foods.length ? foods.map((f, i) => `<div class="log-item"><span class="log-name">${f.name}</span><span class="log-meta">${f.meal} · ${f.time}</span><button class="btn btn-sm btn-danger" onclick="rmF(${i})">×</button></div>`).join('') : '<div style="font-size:13px;color:var(--text3);padding:4px 0">Nothing logged yet</div>';
+  document.getElementById('cal-today').innerHTML = foods.length ? calBadge(cals) : '';
+}
+
+function rmF(i) { const t = today(); S.days[t].food.splice(i, 1); save(S); renderQF(); }
+
+function renderFood() {
+  const t = today(), foods = (S.days[t] && S.days[t].food) || [];
+  document.getElementById('food-log').innerHTML = foods.length ? foods.map((f, i) => `<div class="log-item"><span class="log-name">${f.name}</span><span class="log-meta">${f.meal} · ${f.time}</span><button class="btn btn-sm btn-danger" onclick="rmF(${i});renderFood()">×</button></div>`).join('') : '<div style="font-size:13px;color:var(--text3)">Nothing logged today.</div>';
+  document.getElementById('food-cal').innerHTML = foods.length ? calBadge(calcCals(foods)) : '';
+  const days = Object.entries(S.days || {}).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 7);
+  document.getElementById('food-hist').innerHTML = days.length ? days.map(([date, d]) => `<div class="log-item"><span class="log-name">${fmtD(date)}</span><span class="log-meta">${(d.food || []).length} meals · ~${calcCals(d.food)} cal</span></div>`).join('') : '<div style="font-size:13px;color:var(--text3)">No history yet.</div>';
+}
+
+function addMeal() {
+  const t = today(), f = document.getElementById('fi').value.trim(), m = document.getElementById('ft').value;
+  if (!f) return;
+  if (!S.days[t]) S.days[t] = { habits: {}, steps: 0, energy: 5, clarity: 5, food: [] };
+  if (!S.days[t].food) S.days[t].food = [];
+  S.days[t].food.push({ name: f, meal: m, time: new Date().toTimeString().slice(0, 5) });
+  document.getElementById('fi').value = ''; save(S); renderFood();
+}
+
+function askMeal() {
+  const f = document.getElementById('fi').value.trim();
+  if (!f) return;
+  prompt('Copy this and paste into Claude:', 'Does "' + f + '" fit my semi-carnivore low carb plan for fat loss? Quick answer — yes, amber, or no, and why.');
+}
+
+function renderGym() {
+  if (!S.pbs) S.pbs = {};
+  if (!S.sessions) S.sessions = [];
+  setMode(curMode);
+  renderProgCharts();
+  document.getElementById('pb-list').innerHTML = PRIMARY_LIFTS.map(l => {
+    const pb = (S.allTimePBs && S.allTimePBs[l]) || (S.pbs && S.pbs[l]);
+    const recent = S.pbs && S.pbs[l]; // most recent session
+    let pbStr = '—';
+    if (pb) {
+      const maxKg = pb.maxKg || (pb.sets ? Math.max(...pb.sets.map(s => s.kg || 0)) : pb.kg) || 0;
+      const detail = pb.sets ? pb.sets.map((s,i) => (s.kg||s.reps) ? `S${i+1}:${s.kg||'BW'}×${s.reps||'?'}` : '').filter(Boolean).join(' ') : '';
+      const dateStr = pb.date ? ` · ${fmtD(pb.date)}` : '';
+      pbStr = `${maxKg}kg${dateStr}${detail ? `<br><span style="font-size:10px;color:var(--text3)">${detail}</span>` : ''}`;
+    }
+    // Show most recent session separately if different from PB
+    let recentStr = '';
+    if (recent && recent !== pb && recent.maxKg) {
+      recentStr = `<div style="font-size:10px;color:var(--text3)">Last: ${recent.maxKg}kg${recent.date ? ' · ' + fmtD(recent.date) : ''}</div>`;
+    }
+    return `<div class="log-item" style="flex-direction:column;align-items:flex-start"><div style="display:flex;justify-content:space-between;width:100%"><span class="log-name">${l}</span><span class="log-meta">${pbStr}</span></div>${recentStr}</div>`;
+  }).join('');
+  const recent = (S.sessions || []).slice(-6).reverse();
+  document.getElementById('sess-hist').innerHTML = recent.length ? recent.map(s => {
+    const liftSummary = Object.entries(s.lifts || {}).filter(([,v]) => v && v.sets).map(([name, v]) => {
+      const maxKg = Math.max(...v.sets.map(s => s.kg || 0));
+      const setStr = v.sets.map((st,i) => (st.kg||st.reps) ? `S${i+1}:${st.kg||'BW'}×${st.reps||'?'}` : '').filter(Boolean).join(' ');
+      return `${name.split(' ')[0]}(${setStr})`;
+    }).slice(0,2).join(' · ');
+    return `<div class="log-item"><span class="log-name">${s.sessName}</span><div style="text-align:right"><div style="font-size:11px;color:var(--text3)">${fmtD(s.date)} · ${s.rating}/5</div>${liftSummary ? `<div style="font-size:10px;color:var(--text3)">${liftSummary}</div>` : ''}</div></div>`;
+  }).join('') : '<div style="font-size:13px;color:var(--text3)">No sessions yet.</div>';
+}
+
+// In-progress session data — persists across mode switches, clears on save or day change
+let inProgress = {};
+
+function saveInProgress() {
+  const sess = SESSIONS[curSess];
+  if (!sess) return;
+  sess.lifts.forEach(l => {
+    const key = l.name.replace(/[\s\/\(\)]/g, '_');
+    const numSets = parseInt(l.sets) || 3;
+    const entry = {};
+    let hasData = false;
+    for (let i = 0; i < numSets; i++) {
+      const kgEl = document.getElementById(`l_${key}_${i}`);
+      const repsEl = document.getElementById(`r_${key}_${i}`);
+      const kg = kgEl ? parseFloat(kgEl.value) : null;
+      const reps = repsEl ? parseInt(repsEl.value) : null;
+      if ((kg && !isNaN(kg) && kg > 0) || (reps && !isNaN(reps) && reps > 0)) hasData = true;
+      entry[i] = { kg: (!isNaN(kg) && kg > 0) ? kg : null, reps: (!isNaN(reps) && reps > 0) ? reps : null };
+    }
+    if (hasData) inProgress[curSess + '_' + l.name] = entry;
+  });
+}
+
+function clearInProgress() { inProgress = {}; }
+
+function selSess(key) {
+  saveInProgress();
+  curSess = key;
+  document.querySelectorAll('.sess-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  setMode(curMode);
+}
+
+function renderLiftLog() {
+  const sess = SESSIONS[curSess];
+  document.getElementById('sess-info').textContent = sess.info;
+  const maxTier = MODE_CONFIG[curMode].maxTier;
+  const visibleLifts = sess.lifts.filter(l => (l.tier || 1) <= maxTier);
+  const skippedLifts = sess.lifts.filter(l => (l.tier || 1) > maxTier);
+  let html = '';
+
+  const tierColors = { 1: '#1E40AF', 2: '#059669', 3: '#9333EA' };
+  const tierLabels = { 1: 'Essential', 2: 'Standard+', 3: 'Full only' };
+
+  visibleLifts.forEach(l => {
+    const key = l.name.replace(/[\s\/\(\)]/g, '_');
+    const numSets = parseInt(l.sets) || 3;
+    const pb = S.pbs && S.pbs[l.name];
+    const pbText = pb ? (Array.isArray(pb.sets)
+      ? `PB: ${pb.sets.map((s,i) => s.kg ? `S${i+1} ${s.kg}kg×${s.reps||'?'}` : '').filter(Boolean).join(' ')}`
+      : (typeof pb === 'object' ? `PB: ${pb.maxKg||pb.kg}kg` : `PB: ${pb}kg`)) : '';
+
+    const lastSess = (S.sessions || []).filter(s => s.sessKey === curSess && s.lifts && s.lifts[l.name]).slice(-1)[0];
+    const lastSets = lastSess ? lastSess.lifts[l.name].sets : null;
+
+    let hint = '';
+    if (lastSets && l.repsTarget) {
+      const topRep = parseInt(l.repsTarget.split('–').pop());
+      if (!isNaN(topRep)) {
+        const validSets = lastSets.filter(s => s.reps);
+        const allHit = validSets.length > 0 && validSets.every(s => s.reps >= topRep);
+        const allClose = validSets.length > 0 && validSets.every(s => s.reps >= topRep - 1);
+        if (allHit) hint = `<span class="hint-ready">↑ Add weight next session</span>`;
+        else if (allClose) hint = `<span class="hint-close">Almost — one more session</span>`;
+      }
+    }
+
+    let lastLine = '';
+    if (lastSets) {
+      const summary = lastSets.map((s, i) => s.kg || s.reps ? `S${i+1}: ${s.kg ? s.kg+'kg' : 'BW'}×${s.reps||'?'}` : '').filter(Boolean).join('  ');
+      if (summary) lastLine = `<div style="font-size:10px;color:var(--text3);margin:2px 0 4px;font-style:italic">Last session: ${summary} ${hint}</div>`;
+    } else if (hint) {
+      lastLine = `<div style="font-size:10px;margin:2px 0 4px">${hint}</div>`;
+    }
+
+    // Dynamic target text — reads from actual last session, not hardcoded strings
+    let targetText = '';
+    if (lastSets) {
+      const lastMaxKg = Math.max(...lastSets.map(s => s.kg || 0).filter(v => v > 0));
+      const lastRepsArr = lastSets.map(s => s.reps || 0).filter(v => v > 0);
+      const lastAvgReps = lastRepsArr.length ? Math.round(lastRepsArr.reduce((a,b) => a+b,0) / lastRepsArr.length) : null;
+      const topRep = parseInt(l.repsTarget.split('–').pop());
+      if (!isNaN(topRep) && lastRepsArr.every(r => r >= topRep)) {
+        targetText = `🎯 All sets hit ${topRep}+ reps at ${lastMaxKg}kg — try adding weight today`;
+      } else if (!isNaN(topRep) && lastRepsArr.some(r => r >= topRep)) {
+        targetText = `🎯 Last session: ${lastMaxKg}kg, avg ${lastAvgReps} reps — push for ${topRep} on all sets`;
+      } else if (lastMaxKg > 0) {
+        targetText = `🎯 Last session: ${lastMaxKg}kg × ${lastRepsArr.join('/')} reps — maintain or improve`;
+      }
+    } else if (l.nextTarget) {
+      targetText = `🎯 ${l.nextTarget}`;
+    }
+
+    // PB text — reads from allTimePBs for accurate all-time best
+    const pbData = (S.allTimePBs && S.allTimePBs[l.name]) || (S.pbs && S.pbs[l.name]);
+    const pbMaxKg = pbData
+      ? (typeof pbData === 'object' && pbData.maxKg ? pbData.maxKg
+        : typeof pbData === 'object' && pbData.kg ? pbData.kg
+        : typeof pbData === 'number' ? pbData : 0)
+      : 0;
+    const freshPbText = pbMaxKg > 0 ? `PB: ${pbMaxKg}kg` : '';
+
+    // In-progress values — persist across mode switches
+    const inProg = inProgress[curSess + '_' + l.name] || {};
+
+    let setRows = '';
+    if (l.noWeight) {
+      setRows = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">`;
+      for (let i = 0; i < numSets; i++) {
+        const ipReps = inProg[i] ? (inProg[i].reps || '') : '';
+        setRows += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:9px;color:var(--text3)">Set ${i+1}</span>
+          <span style="font-size:10px;color:var(--text3)">BW</span>
+          <input type="number" class="lift-input-sm" id="r_${key}_${i}" placeholder="reps" min="0" max="99" value="${ipReps}" style="width:40px"/>
+        </div>`;
+      }
+      setRows += `</div>`;
+    } else {
+      setRows = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">`;
+      for (let i = 0; i < numSets; i++) {
+        // Pre-fill kg from last session OR in-progress; reps always empty unless in-progress
+        const lastKg = lastSets && lastSets[i] ? (lastSets[i].kg || '') : '';
+        const ipKg = inProg[i] && inProg[i].kg ? inProg[i].kg : lastKg;
+        const ipReps = inProg[i] ? (inProg[i].reps || '') : '';
+        setRows += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:9px;color:var(--text3)">Set ${i+1}</span>
+          <input type="number" class="lift-input" id="l_${key}_${i}" placeholder="kg" min="0" step="0.5" value="${ipKg}" style="width:50px"/>
+          <input type="number" class="lift-input-sm" id="r_${key}_${i}" placeholder="reps" min="0" max="99" value="${ipReps}" style="width:40px"/>
+        </div>`;
+      }
+      setRows += `</div>`;
+    }
+
+    const tier = l.tier || 1;
+    const tierBadge = `<span style="font-size:9px;padding:1px 5px;border-radius:10px;background:${tierColors[tier]}18;color:${tierColors[tier]};margin-left:5px;vertical-align:middle">${tierLabels[tier]}</span>`;
+
+    html += `<div class="lift-row" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="lift-name">${l.name}${tierBadge}</div>
+          <div class="lift-target">${l.sets} sets · target ${l.repsTarget} reps${l.noWeight ? ' · bodyweight' : ''}</div>
+          ${targetText ? `<div style="font-size:10px;color:#1E40AF;margin-top:2px">${targetText}</div>` : ''}
+        </div>
+        <span class="lift-pb" id="pb_${key}" style="text-align:right;max-width:160px;font-size:10px;color:var(--text3)">${freshPbText}</span>
+      </div>
+      ${lastLine}
+      ${setRows}
+    </div>`;
+  });
+
+  if (skippedLifts.length) {
+    html += `<div style="margin-top:10px;padding:8px 12px;background:var(--bg2);border-radius:var(--radius-sm);font-size:12px;color:var(--text3)">
+      <span style="font-weight:600;color:var(--text2)">Skipped today (${MODE_CONFIG[curMode].label} mode):</span> ${skippedLifts.map(l => l.name).join(' · ')}
+    </div>`;
+  }
+
+  document.getElementById('lift-log').innerHTML = html;
+}
+
+function saveSess() {
+  if (!S.pbs) S.pbs = {}; if (!S.sessions) S.sessions = [];
+  const sess = SESSIONS[curSess];
+  const maxTier = MODE_CONFIG[curMode].maxTier;
+  const visibleLifts = sess.lifts.filter(l => (l.tier || 1) <= maxTier);
+  const rating = parseInt(document.getElementById('sess-rate').value);
+  const lifts = {};
+
+  visibleLifts.forEach(l => {
+    const key = l.name.replace(/[\s\/\(\)]/g, '_');
+    const numSets = parseInt(l.sets) || 3;
+    const sets = [];
+    let maxKg = 0;
+
+    for (let i = 0; i < numSets; i++) {
+      const kgInp = document.getElementById('l_' + key + '_' + i);
+      const repsInp = document.getElementById('r_' + key + '_' + i);
+      const kg = kgInp ? parseFloat(kgInp.value) : null;
+      const reps = repsInp ? parseInt(repsInp.value) : null;
+      const hasData = (!isNaN(kg) && kg > 0) || (!isNaN(reps) && reps > 0);
+      sets.push({
+        kg: (!isNaN(kg) && kg > 0) ? kg : null,
+        reps: (!isNaN(reps) && reps > 0) ? reps : null
+      });
+      if (!isNaN(kg) && kg > maxKg) maxKg = kg;
+    }
+
+    const anySets = sets.some(s => s.kg || s.reps);
+    if (!anySets) return;
+
+    lifts[l.name] = { sets };
+
+    // Always store current session data for display purposes
+    if (!S.pbs) S.pbs = {};
+    if (!S.allTimePBs) S.allTimePBs = {};
+
+    if (maxKg > 0) {
+      // Check against all-time PB separately
+      const curAllTimePB = S.allTimePBs[l.name]
+        ? (typeof S.allTimePBs[l.name] === 'object' ? S.allTimePBs[l.name].maxKg || 0 : S.allTimePBs[l.name] || 0)
+        : 0;
+
+      // Always update S.pbs with most recent session — this is what the display reads
+      S.pbs[l.name] = { sets, maxKg, date: today() };
+
+      // Update all-time PB only if beaten
+      if (maxKg > curAllTimePB) {
+        S.allTimePBs[l.name] = { sets, maxKg, date: today() };
+      }
+    }
+  });
+
+  S.sessions.push({ date: today(), sessName: sess.name, sessKey: curSess, mode: curMode, rating, lifts });
+  save(S);
+  clearInProgress();
+  renderGym();
+  // Show brief confirmation
+  const saveBtn = document.querySelector('[onclick="saveSess()"]');
+  if (saveBtn) {
+    const orig = saveBtn.textContent;
+    saveBtn.textContent = '✓ Saved and reset';
+    saveBtn.style.background = '#2D6A4F';
+    setTimeout(() => { saveBtn.textContent = orig; saveBtn.style.background = ''; }, 2500);
+  }
+}
+
+function renderProgCharts() {
+  const el = document.getElementById('prog-charts');
+  if (!S.sessions || S.sessions.length < 2) { el.innerHTML = '<div style="font-size:13px;color:var(--text3)">Log at least 2 sessions to see charts.</div>'; return; }
+  el.innerHTML = '';
+  Object.keys(charts).forEach(k => { try { charts[k].destroy(); } catch(e) {} }); charts = {};
+
+  PRIMARY_LIFTS.forEach(lift => {
+    const pts = S.sessions.filter(s => s.lifts && s.lifts[lift] && s.lifts[lift].sets).slice(-8);
+    if (pts.length < 2) return;
+
+    // Max kg per session, average reps per session
+    const kgData = pts.map(p => Math.max(...p.lifts[lift].sets.map(s => s.kg || 0)));
+    const repsData = pts.map(p => {
+      const validSets = p.lifts[lift].sets.filter(s => s.reps);
+      return validSets.length ? Math.round(validSets.reduce((a, s) => a + s.reps, 0) / validSets.length) : null;
+    });
+    const hasKg = kgData.some(v => v > 0);
+    const hasReps = repsData.some(r => r !== null);
+    if (!hasKg && !hasReps) return;
+
+    const wrap = document.createElement('div'); wrap.style.marginBottom = '20px';
+    const latestKg = kgData[kgData.length - 1];
+    const latestReps = repsData[repsData.length - 1];
+    const latestSets = pts[pts.length - 1].lifts[lift].sets;
+    const setDetail = latestSets.map((s, i) => (s.kg || s.reps) ? `S${i+1}:${s.kg ? s.kg+'kg' : 'BW'}×${s.reps||'?'}` : '').filter(Boolean).join('  ');
+
+    const lbl = document.createElement('div'); lbl.style.cssText = 'font-size:12px;font-weight:600;color:var(--text2);margin-bottom:2px;display:flex;justify-content:space-between;align-items:flex-start';
+    lbl.innerHTML = `<span>${lift}</span><span style="font-size:10px;color:var(--text3);text-align:right;max-width:180px">${setDetail}</span>`;
+    const sublbl = document.createElement('div'); sublbl.style.cssText = 'font-size:10px;color:var(--text3);margin-bottom:4px';
+    sublbl.textContent = `Max ${latestKg}kg · avg ${latestReps || '?'} reps across sets`;
+
+    const cw = document.createElement('div'); cw.className = 'chart-wrap';
+    const cv = document.createElement('canvas');
+    cw.appendChild(cv); wrap.appendChild(lbl); wrap.appendChild(sublbl); wrap.appendChild(cw); el.appendChild(wrap);
+
+    const datasets = [];
+    if (hasKg) datasets.push({ label: 'Max kg', data: kgData, borderColor: '#2D6A4F', backgroundColor: 'rgba(45,106,79,0.08)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#2D6A4F', borderWidth: 2, fill: true, yAxisID: 'y' });
+    if (hasReps) datasets.push({ label: 'Avg reps', data: repsData, borderColor: '#1E40AF', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#1E40AF', borderWidth: 1.5, borderDash: [4, 2], fill: false, yAxisID: 'y2' });
+
+    charts[lift] = new Chart(cv, {
+      type: 'line', data: { labels: pts.map(p => fmtD(p.date)), datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { font: { size: 10, family: 'DM Sans' }, color: '#9A9A9A', boxWidth: 18 } } },
+        scales: {
+          x: { ticks: { color: '#9A9A9A', font: { size: 10, family: 'DM Sans' } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+          y: { position: 'left', ticks: { color: '#2D6A4F', font: { size: 10, family: 'DM Sans' }, callback: v => v + 'kg' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+          ...(hasReps ? { y2: { position: 'right', ticks: { color: '#1E40AF', font: { size: 10, family: 'DM Sans' }, callback: v => v + 'r' }, grid: { display: false } } } : {})
+        }
+      }
+    });
+  });
+}
+
+function askProgress() {
+  prompt('Copy this and paste into Claude:', 'Analyse my gym progress and tell me what to focus on next session based on my recent performance.');
+}
+
+function renderSupps() {
+  const t = today();
+  if (!S.suppsDone) S.suppsDone = {};
+  if (!S.suppsDone[t]) S.suppsDone[t] = { am: {}, pm: {}, train: {} };
+  const d = S.suppsDone[t];
+  document.getElementById('supp-am').innerHTML = SUPP_AM.map((s, i) => {
+    const ck = d.am[i] || false;
+    return `<div class="supp-row"><div><div class="supp-name">${s.name}</div><div class="supp-note">${s.note}</div></div><button class="check ${ck ? 'done' : ''}" onclick="togSupp('am',${i})">${ck ? '✓' : ''}</button></div>`;
+  }).join('');
+  document.getElementById('supp-pm').innerHTML = SUPP_PM.map((s, i) => {
+    const ck = d.pm[i] || false;
+    return `<div class="supp-row"><div><div class="supp-name">${s.name}</div><div class="supp-note">${s.note}</div></div><button class="check ${ck ? 'done' : ''}" onclick="togSupp('pm',${i})">${ck ? '✓' : ''}</button></div>`;
+  }).join('');
+  document.getElementById('supp-train').innerHTML = SUPP_TRAIN.map((s, i) => {
+    const ck = d.train[i] || false;
+    return `<div class="supp-row"><div><div class="supp-name">${s.name}</div><div class="supp-note">${s.note}</div></div><button class="check ${ck ? 'done' : ''}" onclick="togSupp('train',${i})">${ck ? '✓' : ''}</button></div>`;
+  }).join('');
+  const streak = Object.keys(S.suppsDone || {}).filter(date => {
+    const dd = S.suppsDone[date];
+    return Object.values(dd.am || {}).filter(Boolean).length >= 4 && Object.values(dd.pm || {}).filter(Boolean).length >= 2;
+  }).length;
+  document.getElementById('supp-streak').innerHTML = `<strong>Supplement streak:</strong> ${streak} day${streak === 1 ? '' : 's'} with full compliance`;
+}
+
+function togSupp(slot, i) {
+  const t = today();
+  if (!S.suppsDone) S.suppsDone = {};
+  if (!S.suppsDone[t]) S.suppsDone[t] = { am: {}, pm: {}, train: {} };
+  S.suppsDone[t][slot][i] = !S.suppsDone[t][slot][i];
+  save(S); renderSupps();
+}
+function saveSupps() { save(S); }
+function resetSupps() { const t = today(); if (!S.suppsDone) S.suppsDone = {}; S.suppsDone[t] = { am: {}, pm: {}, train: {} }; save(S); renderSupps(); }
+
+function renderGrocery() {
+  if (!S.groc) S.groc = {};
+  const el = document.getElementById('groc-list'); el.innerHTML = '';
+  Object.entries(GROCERY).forEach(([cat, items]) => {
+    const sec = document.createElement('div'); sec.className = 'groc-section';
+    sec.innerHTML = `<div class="groc-cat">${cat}</div>`;
+    items.forEach((item, i) => {
+      const key = cat + '_' + i, ck = S.groc[key] || false;
+      const row = document.createElement('div'); row.className = 'groc-item' + (ck ? ' ticked' : '');
+      row.innerHTML = `<button class="groc-check ${ck ? 'done' : ''}" onclick="togGroc('${key}',this.parentElement)">${ck ? '✓' : ''}</button><span style="flex:1">${item.item}</span><span style="font-size:11px;color:var(--text3)">${item.qty}</span>`;
+      sec.appendChild(row);
+    });
+    el.appendChild(sec);
+  });
+}
+
+function togGroc(key, rowEl) {
+  if (!S.groc) S.groc = {};
+  S.groc[key] = !S.groc[key]; save(S);
+  const ck = S.groc[key];
+  rowEl.className = 'groc-item' + (ck ? ' ticked' : '');
+  const btn = rowEl.querySelector('.groc-check');
+  btn.className = 'groc-check' + (ck ? ' done' : ''); btn.textContent = ck ? '✓' : '';
+}
+function resetGroc() { S.groc = {}; save(S); renderGrocery(); }
+function batchTips() { prompt('Copy and paste into Claude:', 'Give me tips for batch cooking this week based on my semi-carnivore meal plan to save the most time — focusing on the mince and egg prep.'); }
+
+function renderProgress() {
+  const m = (S.metrics || []).slice(-6).reverse();
+  document.getElementById('metrics-hist').innerHTML = m.length ? m.map(x => `<div class="log-item"><span class="log-name">${fmtD(x.date)}</span><span class="log-meta">${x.waist ? x.waist + 'cm waist · ' : ''}${x.weight ? x.weight + 'kg · ' : ''}${x.clothes}</span></div>`).join('') : '<div style="font-size:13px;color:var(--text3)">No metrics yet.</div>';
+  const photos = S.photos || [], last = photos[photos.length - 1];
+  if (last) {
+    const days = Math.floor((new Date() - new Date(last + 'T12:00:00')) / 86400000);
+    document.getElementById('photo-msg').innerHTML = `<div style="font-size:13px;color:${days >= 14 ? 'var(--red)' : 'var(--green)'}">Last photo: ${fmtD(last)} (${days} days ago)${days >= 14 ? ' — time for a new one!' : ' — looking good'}</div>`;
+  } else { document.getElementById('photo-msg').innerHTML = '<div style="font-size:13px;color:var(--text3)">No photos yet — take your week 0 photo today.</div>'; }
+  const sg = document.getElementById('streak-grid'); sg.innerHTML = '';
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = d.toISOString().split('T')[0], dd = S.days && S.days[k];
+    const dot = document.createElement('div'); dot.className = 'streak-dot';
+    if (dd) { const n = Object.values(dd.habits || {}).filter(Boolean).length; if (n >= 5) dot.classList.add('hit'); else if (n >= 2) dot.classList.add('amber'); else if (n > 0) dot.classList.add('miss'); }
+    dot.title = k; sg.appendChild(dot);
+  }
+}
+function saveMetrics() {
+  if (!S.metrics) S.metrics = [];
+  const waist = parseFloat(document.getElementById('waist-in').value), weight = parseFloat(document.getElementById('weight-in').value), clothes = document.getElementById('clothes-in').value;
+  S.metrics.push({ date: today(), waist: isNaN(waist) ? null : waist, weight: isNaN(weight) ? null : weight, clothes });
+  save(S); renderProgress();
+}
+function logPhoto() { if (!S.photos) S.photos = []; S.photos.push(today()); save(S); renderProgress(); }
+
+function renderCoach() {
+  const days = Object.entries(S.days || {}).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 7);
+  const gd = days.filter(([, d]) => Object.values(d.habits || {}).filter(Boolean).length >= 5).length;
+  const ad = days.filter(([, d]) => { const n = Object.values(d.habits || {}).filter(Boolean).length; return n >= 2 && n < 5; }).length;
+  const ts = days.reduce((s, [, d]) => s + (d.steps || 0), 0);
+  const ae = days.length ? Math.round(days.reduce((s, [, d]) => s + (d.energy || 5), 0) / days.length) : 5;
+  const gs = (S.sessions || []).filter(s => (new Date() - new Date(s.date + 'T12:00:00')) < 7 * 86400000).length;
+  const avgSteps = days.length ? Math.round(ts / days.length) : 0;
+  document.getElementById('week-summary').innerHTML = `<div class="metric-grid"><div class="metric"><div class="metric-val">${gd}</div><div class="metric-lbl">Green days</div></div><div class="metric"><div class="metric-val">${ad}</div><div class="metric-lbl">Amber days</div></div><div class="metric"><div class="metric-val">${gs}</div><div class="metric-lbl">Gym sessions</div></div><div class="metric"><div class="metric-val">${avgSteps > 0 ? avgSteps.toLocaleString() : '—'}</div><div class="metric-lbl">Avg steps</div></div><div class="metric"><div class="metric-val">${ae}/10</div><div class="metric-lbl">Avg energy</div></div></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${gd >= 4 ? 'Strong week.' : gd >= 2 ? 'Decent week — push for 4+ green days.' : 'Tough week. No two red days in a row.'}</div>`;
+  genCoachQs(gd, gs, avgSteps, ae);
+  if (!S.reset) S.reset = {};
+  document.getElementById('reset-list').innerHTML = RESETS.map((item, i) => `<div class="habit-row"><span class="habit-name" style="${S.reset[i] ? 'text-decoration:line-through;color:var(--text3)' : ''}">${item}</span><button class="check ${S.reset[i] ? 'done' : ''}" onclick="togR(${i})">${S.reset[i] ? '✓' : ''}</button></div>`).join('');
+}
+
+function genCoachQs(gd, gs, avgSteps, ae) {
+  const qs = [];
+  if (gs < 2) qs.push(`You made it to the gym ${gs} time${gs === 1 ? '' : 's'} this week. What got in the way — scheduling, energy, or something else?`);
+  else if (gs >= 3) qs.push(`Good gym consistency with ${gs} sessions. Which session felt strongest and which felt hardest?`);
+  if (avgSteps < 5000) qs.push(`Average steps were around ${avgSteps.toLocaleString()} — below the 6k target. What's one thing you could change to add 1,000 steps to a typical weekday?`);
+  if (ae <= 5) qs.push(`Your average energy score was ${ae}/10. Were there specific days that dragged? What do you think caused it?`);
+  else if (ae >= 7) qs.push(`Strong energy scores averaging ${ae}/10. What do you think contributed most to that?`);
+  if (gd < 3) qs.push(`You had ${gd} green days. Which habit slipped most — food, steps, supplements, or the evening wind-down?`);
+  else if (gd >= 4) qs.push(`${gd} green days — strong week. What made it easier to stay on track compared to previous weeks?`);
+  qs.push('On a scale of 1–10, how would you rate your diet this week? Biggest food win and biggest slip?');
+  document.getElementById('coach-qs').innerHTML = qs.slice(0, 3).map(q => `<div class="coach-q">${q}</div>`).join('');
+}
+
+function sendCoach() {
+  const ans = document.getElementById('coach-ans').value.trim();
+  const qs = Array.from(document.querySelectorAll('.coach-q')).map(el => el.textContent).join(' | ');
+  const msg = 'Weekly coaching check-in. Questions: ' + qs + (ans ? ' My answers: ' + ans : '') + '. I am working on fat loss and muscle retention, semi-carnivore low carb diet, training Tue/Thu/Sat/Sun. Give me honest feedback and my one focus for next week.';
+  prompt('Copy this and paste into a new Claude conversation:', msg);
+}
+
+function togR(i) { if (!S.reset) S.reset = {}; S.reset[i] = !S.reset[i]; save(S); renderCoach(); }
+
+function tip(exercise) {
+  prompt('Copy this and paste into Claude:', 'Give me a quick 3-point technique guide for ' + exercise + ' — the most important form cues, the most common mistake to avoid, and one cue to really feel it in the right muscle. Short and practical.');
+}
+
+function showDay(day) {
+  document.querySelectorAll('.day-screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('ds-' + day).classList.add('active');
+  event.target.classList.add('active');
+}
+
+renderToday();
+seedBaseline();
+
+function exportData() {
+  const out = document.getElementById('export-out');
+  try {
+    const dataStr = JSON.stringify(S);
+    out.value = dataStr;
+    out.select();
+    document.execCommand('copy');
+    out.style.borderColor = '#2D6A4F';
+    setTimeout(() => out.style.borderColor = '', 2000);
+    const btn = document.querySelector('[onclick="exportData()"]');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✅ Copied to clipboard!'; setTimeout(() => btn.textContent = orig, 2500); }
+  } catch(e) {
+    out.value = JSON.stringify(S);
+    out.select();
+  }
+}
+
+function importData() {
+  const inp = document.getElementById('import-in').value.trim();
+  const out = document.getElementById('debug-out');
+  if (!inp) { out.textContent = 'Nothing pasted — paste your backup code in the box above first.'; return; }
+  try {
+    const parsed = JSON.parse(inp);
+    if (!parsed || typeof parsed !== 'object') throw new Error('Invalid format');
+    S = parsed;
+    save(S);
+    out.textContent = '✅ Data restored successfully!\nSessions: ' + (S.sessions || []).length + '\nPBs: ' + Object.keys(S.pbs || {}).length + '\n\nPage will refresh in 2 seconds...';
+    setTimeout(() => location.reload(), 2000);
+  } catch(e) {
+    out.textContent = '❌ Could not restore — the code looks invalid. Make sure you copied the full export text without any changes.\n\nError: ' + e.message;
+  }
+}
+
+function inspectSessions() {
+  const out = document.getElementById('debug-out');
+  const sessions = S.sessions || [];
+  if (!sessions.length) { out.textContent = 'No sessions saved. Have you tapped Save session after logging?'; return; }
+  out.textContent = `${sessions.length} sessions saved:\n\n` + sessions.map((s, i) =>
+    `${i+1}. ${s.sessName} — ${s.date}\n   Lifts: ${Object.keys(s.lifts || {}).join(', ') || 'none'}`
+  ).join('\n\n');
+}
+
+function inspectPBs() {
+  const out = document.getElementById('debug-out');
+  const pbs = S.pbs || {};
+  const allTime = S.allTimePBs || {};
+  const keys = [...new Set([...Object.keys(pbs), ...Object.keys(allTime)])];
+  if (!keys.length) { out.textContent = 'No PBs saved yet. Log and save a session first.'; return; }
+  out.textContent = 'MOST RECENT SESSION DATA (S.pbs):\n' +
+    Object.entries(pbs).map(([k,v]) => `  ${k}: ${v.maxKg ? v.maxKg+'kg' : JSON.stringify(v).slice(0,60)}`).join('\n') +
+    '\n\nALL TIME PBs (S.allTimePBs):\n' +
+    Object.entries(allTime).map(([k,v]) => `  ${k}: ${v.maxKg ? v.maxKg+'kg' : JSON.stringify(v).slice(0,60)}`).join('\n');
+}
+
+function testSave() {
+  const out = document.getElementById('debug-out');
+  try {
+    const testKey = 'vh_test_' + Date.now();
+    localStorage.setItem(testKey, 'ok');
+    const val = localStorage.getItem(testKey);
+    localStorage.removeItem(testKey);
+    if (val === 'ok') {
+      out.textContent = '✅ localStorage is working correctly.\n\nStorage key: ' + SK + '\nData size: ' + JSON.stringify(S).length + ' characters\nSessions saved: ' + (S.sessions || []).length + '\nLast session: ' + ((S.sessions || []).slice(-1)[0] || {}).date || 'none';
+    } else {
+      out.textContent = '❌ localStorage read/write failed — data is not being saved. Try a different browser or check private browsing mode.';
+    }
+  } catch(e) {
+    out.textContent = '❌ localStorage error: ' + e.message + '\n\nThis may be because you\'re in private/incognito mode, or storage is full. Try opening the file in a regular browser window.';
+  }
+}
+</script>
+</body>
+</html>
